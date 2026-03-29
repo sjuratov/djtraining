@@ -56,3 +56,34 @@ test.describe('Admin Dashboard', () => {
     await expect(page).toHaveURL(/\/login/);
   });
 });
+
+test.describe('Admin Member Profiles', () => {
+  test.beforeEach(async ({ page, request }) => {
+    await request.post('http://localhost:5001/api/test/reset');
+    await request.post('http://localhost:5001/api/test/create-user', {
+      data: { email: 'admin@test.de', displayName: 'Admin Test', password: 'admin1234' },
+    });
+    await request.post('http://localhost:5001/api/test/create-user', {
+      data: { email: 'member@test.de', displayName: 'Member Test', password: 'member1234' },
+    });
+    await page.goto('/login');
+    await page.getByLabel('E-Mail').fill('admin@test.de');
+    await page.getByLabel('Passwort').fill('admin1234');
+    await page.getByRole('button', { name: 'Anmelden' }).click();
+    await page.waitForURL('/');
+    await page.goto('/admin');
+  });
+
+  test('can search users', async ({ page }) => {
+    await page.getByTestId('search-users').fill('member');
+    const rows = page.locator('tbody tr');
+    await expect(rows).toHaveCount(1);
+    await expect(rows.first()).toContainText('member@test.de');
+  });
+
+  test('can view member profile', async ({ page }) => {
+    const viewButtons = page.locator('[data-testid^="view-profile-"]');
+    await viewButtons.nth(1).click();
+    await expect(page.getByTestId('member-profile-panel')).toBeVisible();
+  });
+});

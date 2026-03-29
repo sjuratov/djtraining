@@ -63,7 +63,7 @@ describe('GET /api/admin/users', () => {
     expect(res.body.error).toBe('Not authenticated');
   });
 
-  it('should not include passwordHash or id in response', async () => {
+  it('should not include passwordHash in response', async () => {
     await request(app)
       .post('/api/auth/register')
       .send({ email: 'nohash@example.com', password: 'SecurePass123!', displayName: 'No Hash User' });
@@ -81,7 +81,7 @@ describe('GET /api/admin/users', () => {
     expect(Array.isArray(res.body)).toBe(true);
     for (const user of res.body) {
       expect(user).not.toHaveProperty('passwordHash');
-      expect(user).not.toHaveProperty('id');
+      expect(user).toHaveProperty('id');
     }
   });
 });

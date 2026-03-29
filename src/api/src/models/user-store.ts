@@ -1,3 +1,28 @@
+export type Gender = 'männlich' | 'weiblich' | 'divers';
+export type TrainingGoal = 'abnehmen' | 'muskelaufbau' | 'fitness' | 'reha' | 'wohlbefinden';
+export type ExperienceLevel = 'anfänger' | 'fortgeschritten' | 'profi';
+export type TrainingType = 'personal' | 'gruppe' | 'beides';
+export type PreferredTime = 'morgens' | 'mittags' | 'abends';
+
+export interface MemberProfile {
+  // Personal
+  firstName: string;
+  lastName: string;
+  phone: string;
+  birthDate: string | null;
+  gender: Gender | null;
+
+  // Fitness
+  trainingGoal: TrainingGoal | null;
+  experienceLevel: ExperienceLevel | null;
+  healthNotes: string;
+
+  // Membership
+  trainingType: TrainingType | null;
+  sessionsPerWeek: number | null;
+  preferredTimes: PreferredTime[];
+}
+
 export interface User {
   id: string;
   email: string;
@@ -9,6 +34,7 @@ export interface User {
   confirmationToken: string | null;
   googleId: string | null;
   createdAt: string;
+  profile: MemberProfile | null;
 }
 
 const users = new Map<string, User>();
@@ -57,6 +83,7 @@ export function createUser(params: {
     confirmationToken: params.confirmationToken,
     googleId: params.googleId,
     createdAt: new Date().toISOString(),
+    profile: null,
   };
   users.set(user.id, user);
   return user;
@@ -64,3 +91,31 @@ export function createUser(params: {
 
 export function deleteUser(id: string): void { users.delete(id); }
 export function clearUsers(): void { users.clear(); }
+
+export function getProfile(userId: string): MemberProfile | null {
+  const user = users.get(userId);
+  return user?.profile ?? null;
+}
+
+export function updateProfile(userId: string, profile: MemberProfile): User | undefined {
+  const user = users.get(userId);
+  if (!user) return undefined;
+  user.profile = profile;
+  return user;
+}
+
+export function createDefaultProfile(): MemberProfile {
+  return {
+    firstName: '',
+    lastName: '',
+    phone: '',
+    birthDate: null,
+    gender: null,
+    trainingGoal: null,
+    experienceLevel: null,
+    healthNotes: '',
+    trainingType: null,
+    sessionsPerWeek: null,
+    preferredTimes: [],
+  };
+}

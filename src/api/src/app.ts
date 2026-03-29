@@ -9,6 +9,7 @@ import { mapChatEndpoints } from './routes/chat.js';
 import { mapAuthEndpoints } from './routes/auth.js';
 import { mapAdminEndpoints } from './routes/admin.js';
 import { mapContactEndpoints } from './routes/contact.js';
+import { mapProfileEndpoints } from './routes/profile.js';
 import { clearUsers, createUser, getUserByEmail, deleteUser, activateUser } from './models/user-store.js';
 
 export function createApp(): express.Express {
@@ -27,6 +28,7 @@ export function createApp(): express.Express {
   mapAuthEndpoints(app);
   mapAdminEndpoints(app);
   mapContactEndpoints(app);
+  mapProfileEndpoints(app);
 
   // Test-only: reset endpoint for e2e test isolation
   if (process.env.NODE_ENV !== 'production') {
