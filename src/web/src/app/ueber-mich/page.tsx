@@ -25,11 +25,11 @@ export default function UeberMichPage() {
 
       {/* Bio section: photo + text */}
       <div className="mb-16 grid items-start gap-8 lg:grid-cols-2">
-        <div className="relative h-80 overflow-hidden rounded-lg lg:h-96">
+        <div className="overflow-hidden rounded-lg">
           <img
             src="/images/diana-juratovic.jpg"
             alt="Diana Juratovic — Personal Trainerin & Ernährungscoach"
-            className="h-full w-full object-cover"
+            className="w-full rounded-lg"
           />
         </div>
 
