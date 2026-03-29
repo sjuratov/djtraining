@@ -42,8 +42,12 @@ export default function HomePage() {
       {/* Über mich Teaser */}
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:py-24">
         <div className="grid items-center gap-8 lg:grid-cols-2">
-          <div className="flex h-64 items-center justify-center rounded-lg bg-gray-200 text-gray-500 lg:h-80">
-            Foto Diana Juratovic
+          <div className="relative h-64 overflow-hidden rounded-lg lg:h-80">
+            <img
+              src="/images/diana-juratovic.jpg"
+              alt="Diana Juratovic — Personal Trainerin & Ernährungscoach"
+              className="h-full w-full object-cover"
+            />
           </div>
           <div>
             <h2 className="mb-4 text-2xl font-bold text-gray-900 sm:text-3xl">Über mich</h2>

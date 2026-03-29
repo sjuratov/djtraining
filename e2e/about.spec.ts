@@ -30,8 +30,8 @@ test.describe('About Page (Über mich)', () => {
     await expect(page.locator('main').getByText(/Rösslimattstrasse 2c/)).toBeVisible();
   });
 
-  test('should display photo or placeholder', async ({ page }) => {
-    const img = page.locator('[role="img"][aria-label*="Diana Juratovic"]');
+  test('should display photo of Diana', async ({ page }) => {
+    const img = page.locator('img[alt*="Diana Juratovic"]');
     await expect(img).toBeVisible();
   });
 
