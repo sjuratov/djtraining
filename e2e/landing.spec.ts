@@ -1,40 +1,44 @@
-import { test, expect, Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
-async function registerUser(page: Page, username: string, password: string) {
-  await page.request.post('/api/auth/register', { data: { username, password } });
-}
-
-async function loginUser(page: Page, username: string, password: string) {
-  await page.request.post('/api/auth/login', { data: { username, password } });
-}
-
-function uniqueUser() {
-  return `user_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-}
-
-test.beforeEach(async ({ context }) => {
-  await context.request.post('http://localhost:5001/api/test/reset');
-  await context.clearCookies();
-});
-
-test.describe('Landing Page', () => {
-  test('guest should see heading, description, and Login/Register CTAs', async ({ page }) => {
+test.describe('Homepage', () => {
+  test('should display hero section with tagline and CTA', async ({ page }) => {
     await page.goto('/');
 
-    await expect(page.getByRole('heading', { name: /userauth/i })).toBeVisible();
-    await expect(page.getByText(/simple authentication demo/i)).toBeVisible();
-    await expect(page.getByRole('main').getByRole('link', { name: /login/i })).toBeVisible();
-    await expect(page.getByRole('main').getByRole('link', { name: /register/i })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Gesundheit, Fitness & Wohlbefinden');
+    await expect(page.getByRole('link', { name: /Kostenloses Probetraining/i })).toBeVisible();
   });
 
-  test('authenticated user should see "Go to Profile" link instead of Login/Register', async ({ page }) => {
-    const username = uniqueUser();
-    const password = 'SecurePass123!';
-    await registerUser(page, username, password);
-    await loginUser(page, username, password);
-
+  test('should display about teaser section', async ({ page }) => {
     await page.goto('/');
 
-    await expect(page.getByRole('link', { name: /go to profile/i })).toBeVisible();
+    await expect(page.getByText(/Diana Juratovic/i)).toBeVisible();
+    await expect(page.getByRole('link', { name: /Mehr erfahren/i })).toBeVisible();
+  });
+
+  test('should display three service cards', async ({ page }) => {
+    await page.goto('/');
+
+    await expect(page.getByText('Personal Training')).toBeVisible();
+    await expect(page.getByText('Gruppentraining')).toBeVisible();
+    await expect(page.getByText('Ernährungscoaching')).toBeVisible();
+  });
+
+  test('service cards should link to their detail pages', async ({ page }) => {
+    await page.goto('/');
+
+    await expect(page.locator('a[href="/personal-training"]')).toBeVisible();
+    await expect(page.locator('a[href="/gruppentraining"]')).toBeVisible();
+    await expect(page.locator('a[href="/ernaehrungscoaching"]')).toBeVisible();
+  });
+
+  test('should have proper SEO meta tags', async ({ page }) => {
+    await page.goto('/');
+
+    const title = await page.title();
+    expect(title).toContain("DJ's Training");
+
+    const description = await page.getAttribute('meta[name="description"]', 'content');
+    expect(description).toBeTruthy();
+    expect(description).toMatch(/Fitness|Gesundheit/i);
   });
 });

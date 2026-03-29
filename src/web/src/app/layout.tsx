@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import NavBar from "./components/NavBar";
+import Header from "./components/Header";
+import Footer from "./components/Footer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,8 +15,16 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "UserAuth",
-  description: "A secure user authentication demo application.",
+  title: {
+    default: "DJ's Training — Personal Training & Fitness in Buchs AG",
+    template: "%s | DJ's Training",
+  },
+  description: "Starte deine persönliche Reise zu mehr Gesundheit, Fitness & Wohlbefinden. Personal Training, Gruppentraining und Ernährungscoaching in Buchs AG mit Diana Juratovic.",
+  openGraph: {
+    title: "DJ's Training — Personal Training & Fitness in Buchs AG",
+    description: "Personal Training, Gruppentraining und Ernährungscoaching in Buchs AG.",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
@@ -24,27 +33,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: `
-          // Remove Next.js route announcer custom element to prevent aria-live conflicts
-          (function() {
-            function fix() {
-              var els = document.getElementsByTagName('next-route-announcer');
-              for (var i = els.length - 1; i >= 0; i--) els[i].remove();
-            }
-            setInterval(fix, 100);
-            if (typeof MutationObserver !== 'undefined') {
-              new MutationObserver(fix).observe(document.documentElement, { childList: true, subtree: true });
-            }
-          })();
-        `}} />
-      </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <NavBar />
-        {children}
+    <html lang="de">
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <Header />
+        <main>{children}</main>
+        <Footer />
       </body>
     </html>
   );

@@ -1,63 +1,60 @@
-import { test, expect, Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
-async function registerUser(page: Page, username: string, password: string) {
-  await page.request.post('/api/auth/register', { data: { username, password } });
-}
-
-async function loginUser(page: Page, username: string, password: string) {
-  await page.request.post('/api/auth/login', { data: { username, password } });
-}
-
-function uniqueUser() {
-  return `user_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-}
-
-test.beforeEach(async ({ context }) => {
-  await context.request.post('http://localhost:5001/api/test/reset');
-  await context.clearCookies();
-});
-
-test.describe('Navigation Bar', () => {
-  test('guest should see Login and Register links but not Profile or Logout', async ({ page }) => {
+test.describe('Navigation', () => {
+  test('header should display brand name', async ({ page }) => {
     await page.goto('/');
-    const nav = page.getByRole('navigation');
+    const header = page.locator('header');
 
-    await expect(nav.getByRole('link', { name: /login/i })).toBeVisible();
-    await expect(nav.getByRole('link', { name: /register/i })).toBeVisible();
-    await expect(nav.getByRole('link', { name: /profile/i })).not.toBeVisible();
-    await expect(nav.getByRole('button', { name: /logout/i })).not.toBeVisible();
+    await expect(header.getByText("DJ's Training")).toBeVisible();
   });
 
-  test('logged-in user should see Profile and Logout but not Login, Register, or Admin', async ({ page }) => {
-    // Register a dummy admin first so the test user gets 'user' role
-    await registerUser(page, uniqueUser(), 'SecurePass123!');
-    const username = uniqueUser();
-    const password = 'SecurePass123!';
-    await registerUser(page, username, password);
-    await loginUser(page, username, password);
-
+  test('header should display navigation links', async ({ page }) => {
     await page.goto('/');
     const nav = page.getByRole('navigation');
 
-    await expect(nav.getByRole('link', { name: /profile/i })).toBeVisible();
-    await expect(nav.getByRole('button', { name: /logout/i })).toBeVisible();
-    await expect(nav.getByRole('link', { name: /login/i })).not.toBeVisible();
-    await expect(nav.getByRole('link', { name: /register/i })).not.toBeVisible();
-    await expect(nav.getByRole('link', { name: /admin/i })).not.toBeVisible();
+    await expect(nav.getByRole('link', { name: /Home/i })).toBeVisible();
+    await expect(nav.getByRole('link', { name: /Über mich/i })).toBeVisible();
+    await expect(nav.getByRole('link', { name: /Angebot/i })).toBeVisible();
+    await expect(nav.getByRole('link', { name: /Trainingszeiten/i })).toBeVisible();
+    await expect(nav.getByRole('link', { name: /Kundenstimmen/i })).toBeVisible();
+    await expect(nav.getByRole('link', { name: /Kontakt/i })).toBeVisible();
   });
 
-  test('admin user should see Profile, Admin, and Logout', async ({ page }) => {
-    // The first registered user becomes admin
-    const username = uniqueUser();
-    const password = 'SecurePass123!';
-    await registerUser(page, username, password);
-    await loginUser(page, username, password);
-
+  test('footer should display business information', async ({ page }) => {
     await page.goto('/');
-    const nav = page.getByRole('navigation');
+    const footer = page.locator('footer');
 
-    await expect(nav.getByRole('link', { name: /profile/i })).toBeVisible();
-    await expect(nav.getByRole('link', { name: /admin/i })).toBeVisible();
-    await expect(nav.getByRole('button', { name: /logout/i })).toBeVisible();
+    await expect(footer.getByText("DJ's Training")).toBeVisible();
+    await expect(footer.getByText(/Rösslimattstrasse 2c/)).toBeVisible();
+    await expect(footer.getByText(/CH-5033 Buchs AG/)).toBeVisible();
+  });
+
+  test('footer should display contact information', async ({ page }) => {
+    await page.goto('/');
+    const footer = page.locator('footer');
+
+    await expect(footer.locator('a[href="tel:+41786112479"]')).toBeVisible();
+    await expect(footer.locator('a[href="mailto:info@dj-training.com"]')).toBeVisible();
+  });
+
+  test('footer should contain legal links', async ({ page }) => {
+    await page.goto('/');
+    const footer = page.locator('footer');
+
+    await expect(footer.getByRole('link', { name: /Impressum/i })).toBeVisible();
+    await expect(footer.getByRole('link', { name: /AGB/i })).toBeVisible();
+    await expect(footer.getByRole('link', { name: /Datenschutz/i })).toBeVisible();
+  });
+
+  test('navigation link to Über mich should work', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('navigation').getByRole('link', { name: /Über mich/i }).click();
+    await expect(page).toHaveURL(/\/ueber-mich/);
+  });
+
+  test('navigation link to Kontakt should work', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('navigation').getByRole('link', { name: /Kontakt/i }).click();
+    await expect(page).toHaveURL(/\/kontakt/);
   });
 });

@@ -24,23 +24,23 @@ function LoginForm() {
       });
 
       if (res.ok) {
-        router.push('/profile');
+        router.push('/');
       } else {
         const data = await res.json().catch(() => ({}));
-        setError(data.error || 'Invalid username or password');
+        setError(data.error || 'Ungültige Anmeldedaten.');
       }
     } catch {
-      setError('An error occurred. Please try again.');
+      setError('Ein Fehler ist aufgetreten. Bitte versuche es erneut.');
     }
   }
 
   return (
-    <div className="w-full max-w-md space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Log in</h1>
+    <div className="w-full max-w-md space-y-6 rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
+      <h1 className="text-2xl font-bold text-gray-900">Anmelden</h1>
 
       {registered && (
         <p className="rounded bg-green-50 p-3 text-green-800">
-          Registration successful. Please log in.
+          Registrierung erfolgreich. Bitte melde dich an.
         </p>
       )}
 
@@ -51,7 +51,7 @@ function LoginForm() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="username" className="block text-sm font-medium text-gray-700">
-            Username
+            Benutzername
           </label>
           <input
             id="username"
@@ -64,7 +64,7 @@ function LoginForm() {
         </div>
         <div>
           <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-            Password
+            Passwort
           </label>
           <input
             id="password"
@@ -77,16 +77,16 @@ function LoginForm() {
         </div>
         <button
           type="submit"
-          className="w-full rounded bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
+          className="w-full rounded bg-rose-600 px-4 py-2 font-medium text-white hover:bg-rose-700"
         >
-          Log in
+          Anmelden
         </button>
       </form>
 
       <p className="text-center text-sm text-gray-600">
-        Don&apos;t have an account?{' '}
-        <Link href="/register" className="text-blue-600 hover:underline">
-          Register
+        Noch kein Konto?{' '}
+        <Link href="/register" className="text-rose-600 hover:underline">
+          Jetzt registrieren →
         </Link>
       </p>
     </div>

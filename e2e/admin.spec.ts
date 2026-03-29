@@ -19,31 +19,28 @@ test.beforeEach(async ({ context }) => {
 
 test.describe('Admin Dashboard', () => {
   test('admin should see a table with all users', async ({ page }) => {
-    // First registered user becomes admin
     const adminUser = uniqueUser();
     const password = 'SecurePass123!';
     await registerUser(page, adminUser, password);
 
-    // Register a second regular user
     const regularUser = uniqueUser();
     await registerUser(page, regularUser, password);
 
     await loginUser(page, adminUser, password);
     await page.goto('/admin');
 
-    await expect(page.getByRole('columnheader', { name: /username/i })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: /role/i })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: /member since/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Admin Dashboard' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: /Benutzername/i })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: /Rolle/i })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: /Registriert am/i })).toBeVisible();
     await expect(page.getByRole('cell', { name: adminUser })).toBeVisible();
     await expect(page.getByRole('cell', { name: regularUser })).toBeVisible();
   });
 
   test('non-admin user should see access denied message', async ({ page }) => {
-    // Create admin first
     const adminUser = uniqueUser();
     await registerUser(page, adminUser, 'SecurePass123!');
 
-    // Create and login as regular user
     const regularUser = uniqueUser();
     const password = 'SecurePass123!';
     await registerUser(page, regularUser, password);
@@ -51,8 +48,8 @@ test.describe('Admin Dashboard', () => {
 
     await page.goto('/admin');
 
-    await expect(page.getByText('Access Denied')).toBeVisible();
-    await expect(page.getByText('You do not have permission to view this page.')).toBeVisible();
+    await expect(page.getByText('Zugriff verweigert')).toBeVisible();
+    await expect(page.getByText('Du hast keine Berechtigung, diese Seite anzuzeigen.')).toBeVisible();
   });
 
   test('unauthenticated user should be redirected to login', async ({ page }) => {
