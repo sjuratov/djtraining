@@ -45,8 +45,11 @@ test.describe('Contact Page (Kontakt)', () => {
     expect(isInvalid).toBe(true);
   });
 
-  test('should display map placeholder', async ({ page }) => {
-    await expect(page.getByText(/Karte|Standort|Map/i)).toBeVisible();
+  test('should display Google Maps embed', async ({ page }) => {
+    const map = page.locator('iframe[title*="Standort"]');
+    await expect(map).toBeVisible();
+    const src = await map.getAttribute('src');
+    expect(src).toContain('google.com/maps');
   });
 
   test('should have proper page title', async ({ page }) => {

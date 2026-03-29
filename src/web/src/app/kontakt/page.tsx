@@ -182,12 +182,18 @@ export default function KontaktPage() {
             </div>
           </div>
 
-          {/* Map placeholder */}
-          <div className="flex h-64 items-center justify-center rounded-lg bg-gray-200 text-gray-500">
-            <div className="text-center">
-              <p className="text-lg font-medium">Standort</p>
-              <p className="text-sm">Rösslimattstrasse 2c, CH-5033 Buchs AG</p>
-            </div>
+          {/* Google Maps embed */}
+          <div className="overflow-hidden rounded-lg">
+            <iframe
+              title="Standort DJ's Training — Rösslimattstrasse 2c, Buchs AG"
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2714.5!2d8.0805!3d47.3897!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s!2sR%C3%B6sslimattstrasse+2c%2C+5033+Buchs+AG%2C+Switzerland!5e0!3m2!1sde!2sch"
+              width="100%"
+              height="300"
+              style={{ border: 0 }}
+              allowFullScreen
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
           </div>
         </section>
       </div>
