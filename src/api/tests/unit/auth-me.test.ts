@@ -1,19 +1,22 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../../src/app.js';
 
 describe('GET /api/auth/me', () => {
   const app = createApp();
 
+  beforeEach(async () => {
+    await request(app).post('/api/test/reset');
+  });
+
   it('should return 200 with user profile when authenticated', async () => {
-    // Register and login
     await request(app)
       .post('/api/auth/register')
-      .send({ username: 'meuser', password: 'securepass123' });
+      .send({ email: 'me@example.com', password: 'SecurePass123!', displayName: 'Me User' });
 
     const loginRes = await request(app)
       .post('/api/auth/login')
-      .send({ username: 'meuser', password: 'securepass123' });
+      .send({ email: 'me@example.com', password: 'SecurePass123!' });
 
     const cookies = loginRes.headers['set-cookie'];
 
@@ -21,9 +24,12 @@ describe('GET /api/auth/me', () => {
       .get('/api/auth/me')
       .set('Cookie', cookies);
     expect(res.status).toBe(200);
-    expect(res.body.username).toBe('meuser');
+    expect(res.body.email).toBe('me@example.com');
+    expect(res.body.displayName).toBe('Me User');
     expect(res.body.role).toBeDefined();
+    expect(res.body.authProvider).toBeDefined();
     expect(res.body.createdAt).toBeDefined();
+    expect(res.body).not.toHaveProperty('username');
   });
 
   it('should return 401 when not authenticated', async () => {
@@ -34,8 +40,7 @@ describe('GET /api/auth/me', () => {
   });
 
   it('should return 401 with expired JWT', async () => {
-    // Use a token that has expired (crafted with past expiry)
-    const expiredToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InRlc3QiLCJpYXQiOjE2MDAwMDAwMDAsImV4cCI6MTYwMDAwMDAwMX0.invalid';
+    const expiredToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0IiwiaWF0IjoxNjAwMDAwMDAwLCJleHAiOjE2MDAwMDAwMDF9.invalid';
     const res = await request(app)
       .get('/api/auth/me')
       .set('Cookie', [`token=${expiredToken}`]);

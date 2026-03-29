@@ -1,19 +1,22 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../../src/app.js';
 
 describe('GET /api/admin/users', () => {
   const app = createApp();
 
+  beforeEach(async () => {
+    await request(app).post('/api/test/reset');
+  });
+
   it('should return 200 with user list for admin', async () => {
-    // First user registered gets admin role
     await request(app)
       .post('/api/auth/register')
-      .send({ username: 'adminuser', password: 'securepass123' });
+      .send({ email: 'admin@example.com', password: 'SecurePass123!', displayName: 'Admin User' });
 
     const loginRes = await request(app)
       .post('/api/auth/login')
-      .send({ username: 'adminuser', password: 'securepass123' });
+      .send({ email: 'admin@example.com', password: 'SecurePass123!' });
 
     const cookies = loginRes.headers['set-cookie'];
 
@@ -23,25 +26,26 @@ describe('GET /api/admin/users', () => {
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
     expect(res.body.length).toBeGreaterThan(0);
-    expect(res.body[0].username).toBeDefined();
+    expect(res.body[0].email).toBeDefined();
+    expect(res.body[0].displayName).toBeDefined();
     expect(res.body[0].role).toBeDefined();
+    expect(res.body[0].authProvider).toBeDefined();
+    expect(res.body[0].status).toBeDefined();
     expect(res.body[0].createdAt).toBeDefined();
   });
 
   it('should return 403 for non-admin users', async () => {
-    // Register admin (first user)
     await request(app)
       .post('/api/auth/register')
-      .send({ username: 'firstadmin', password: 'securepass123' });
+      .send({ email: 'firstadmin@example.com', password: 'SecurePass123!', displayName: 'First Admin' });
 
-    // Register a regular user (second user)
     await request(app)
       .post('/api/auth/register')
-      .send({ username: 'regularuser', password: 'securepass123' });
+      .send({ email: 'regular@example.com', password: 'SecurePass123!', displayName: 'Regular User' });
 
     const loginRes = await request(app)
       .post('/api/auth/login')
-      .send({ username: 'regularuser', password: 'securepass123' });
+      .send({ email: 'regular@example.com', password: 'SecurePass123!' });
 
     const cookies = loginRes.headers['set-cookie'];
 
@@ -62,11 +66,11 @@ describe('GET /api/admin/users', () => {
   it('should not include passwordHash or id in response', async () => {
     await request(app)
       .post('/api/auth/register')
-      .send({ username: 'nohashuser', password: 'securepass123' });
+      .send({ email: 'nohash@example.com', password: 'SecurePass123!', displayName: 'No Hash User' });
 
     const loginRes = await request(app)
       .post('/api/auth/login')
-      .send({ username: 'nohashuser', password: 'securepass123' });
+      .send({ email: 'nohash@example.com', password: 'SecurePass123!' });
 
     const cookies = loginRes.headers['set-cookie'];
 

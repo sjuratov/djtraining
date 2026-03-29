@@ -22,7 +22,8 @@ const navLinks = [
 ];
 
 interface AuthUser {
-  username: string;
+  email: string;
+  displayName: string;
   role: string;
 }
 
@@ -135,7 +136,7 @@ export default function Header() {
                 aria-expanded={userMenuOpen}
                 data-testid="user-menu-button"
               >
-                {user.username}
+                {user.displayName || user.email}
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                 </svg>

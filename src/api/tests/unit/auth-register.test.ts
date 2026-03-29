@@ -1,88 +1,96 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../../src/app.js';
 
 describe('POST /api/auth/register', () => {
   const app = createApp();
 
+  beforeEach(async () => {
+    await request(app).post('/api/test/reset');
+  });
+
   it('should return 201 for valid registration', async () => {
     const res = await request(app)
       .post('/api/auth/register')
-      .send({ username: 'testuser', password: 'securepass123' });
+      .send({ email: 'test@example.com', password: 'SecurePass123!', displayName: 'Test User' });
     expect(res.status).toBe(201);
-    expect(res.body.message).toBe('Registration successful');
+    expect(res.body.message).toBe('Registrierung erfolgreich');
   });
 
-  it('should return 409 when username already taken', async () => {
-    // Register the first user
+  it('should return 409 when email already registered', async () => {
     await request(app)
       .post('/api/auth/register')
-      .send({ username: 'duplicate', password: 'securepass123' });
+      .send({ email: 'duplicate@example.com', password: 'SecurePass123!', displayName: 'First User' });
 
-    // Attempt to register the same username
     const res = await request(app)
       .post('/api/auth/register')
-      .send({ username: 'duplicate', password: 'anotherpass123' });
+      .send({ email: 'duplicate@example.com', password: 'AnotherPass123!', displayName: 'Second User' });
     expect(res.status).toBe(409);
-    expect(res.body.error).toBe('Username already exists');
+    expect(res.body.error).toBe('E-Mail-Adresse ist bereits registriert');
   });
 
-  it('should return 400 when username is missing', async () => {
+  it('should return 400 when email is missing', async () => {
     const res = await request(app)
       .post('/api/auth/register')
-      .send({ password: 'securepass123' });
+      .send({ password: 'SecurePass123!', displayName: 'Test User' });
     expect(res.status).toBe(400);
-    expect(res.body.error).toBe('Username is required');
+    expect(res.body.error).toBe('E-Mail ist erforderlich');
   });
 
-  it('should return 400 when username is too short', async () => {
+  it('should return 400 when email format is invalid', async () => {
     const res = await request(app)
       .post('/api/auth/register')
-      .send({ username: 'ab', password: 'securepass123' });
+      .send({ email: 'not-an-email', password: 'SecurePass123!', displayName: 'Test User' });
     expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/username/i);
-  });
-
-  it('should return 400 when username contains special characters', async () => {
-    const res = await request(app)
-      .post('/api/auth/register')
-      .send({ username: 'user@name!', password: 'securepass123' });
-    expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/username/i);
+    expect(res.body.error).toBe('Ungültige E-Mail-Adresse');
   });
 
   it('should return 400 when password is missing', async () => {
     const res = await request(app)
       .post('/api/auth/register')
-      .send({ username: 'validuser' });
+      .send({ email: 'test@example.com', displayName: 'Test User' });
     expect(res.status).toBe(400);
-    expect(res.body.error).toBe('Password is required');
+    expect(res.body.error).toBe('Passwort ist erforderlich');
   });
 
   it('should return 400 when password is too short', async () => {
     const res = await request(app)
       .post('/api/auth/register')
-      .send({ username: 'validuser', password: 'short' });
+      .send({ email: 'test@example.com', password: 'short', displayName: 'Test User' });
     expect(res.status).toBe(400);
-    expect(res.body.error).toBe('Password must be at least 8 characters');
+    expect(res.body.error).toBe('Passwort muss mindestens 8 Zeichen lang sein');
   });
 
-  it('should validate username before password (first error only)', async () => {
+  it('should return 400 when displayName is too short', async () => {
     const res = await request(app)
       .post('/api/auth/register')
-      .send({ username: '', password: 'short' });
+      .send({ email: 'test@example.com', password: 'SecurePass123!', displayName: 'A' });
     expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/username/i);
-    expect(res.body.error).not.toMatch(/password/i);
+    expect(res.body.error).toBe('Name muss mindestens 2 Zeichen lang sein');
+  });
+
+  it('should validate email before password (first error only)', async () => {
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({ email: '', password: 'short', displayName: 'Test User' });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/E-Mail/);
+    expect(res.body.error).not.toMatch(/Passwort/);
   });
 
   it('should store password as bcrypt hash, not plain text', async () => {
-    const password = 'securepass123';
+    const password = 'SecurePass123!';
+    const email = 'hashtest@example.com';
     const res = await request(app)
       .post('/api/auth/register')
-      .send({ username: 'hashtest', password });
+      .send({ email, password, displayName: 'Hash Test' });
     expect(res.status).toBe(201);
-    // The response should not contain the plain text password
-    expect(JSON.stringify(res.body)).not.toContain(password);
+
+    const hashRes = await request(app)
+      .get(`/api/test/user-hash/${encodeURIComponent(email)}`);
+    expect(hashRes.status).toBe(200);
+    expect(hashRes.body.passwordHash).toBeDefined();
+    expect(hashRes.body.passwordHash).not.toBe(password);
+    expect(hashRes.body.passwordHash).toMatch(/^\$2[aby]\$/);
   });
 });

@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface User {
-  username: string;
+  email: string;
+  displayName: string;
   role: string;
+  authProvider: string;
   createdAt: string;
 }
 
@@ -81,14 +83,22 @@ export default function ProfilePage() {
       <div className="w-full max-w-md space-y-6 rounded-lg border border-gray-200 bg-white p-8 shadow-sm text-center">
         <h1 className="text-2xl font-bold text-gray-900">Mein Profil</h1>
         <div className="space-y-3">
-          <p className="text-lg font-semibold text-gray-900">{user.username}</p>
-          <span data-testid="role-badge" className={`inline-block rounded-full px-3 py-1 text-sm font-medium ${
-            user.role === 'admin'
-              ? 'bg-rose-100 text-rose-800'
-              : 'bg-gray-100 text-gray-800'
-          }`}>
-            {user.role === 'admin' ? 'Admin' : 'Benutzer'}
-          </span>
+          <p className="text-lg font-semibold text-gray-900">{user.displayName}</p>
+          <p className="text-sm text-gray-500">{user.email}</p>
+          <div className="flex items-center justify-center gap-2">
+            <span data-testid="role-badge" className={`inline-block rounded-full px-3 py-1 text-sm font-medium ${
+              user.role === 'admin'
+                ? 'bg-rose-100 text-rose-800'
+                : 'bg-gray-100 text-gray-800'
+            }`}>
+              {user.role === 'admin' ? 'Admin' : 'Benutzer'}
+            </span>
+            {user.authProvider === 'google' && (
+              <span className="inline-block rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700">
+                Google
+              </span>
+            )}
+          </div>
           <p className="text-gray-600">
             Mitglied seit {formatDate(user.createdAt)}
           </p>

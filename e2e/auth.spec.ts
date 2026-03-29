@@ -1,15 +1,15 @@
 import { test, expect, Page } from '@playwright/test';
 
-async function registerUser(page: Page, username: string, password: string) {
-  await page.request.post('/api/auth/register', { data: { username, password } });
+function uniqueEmail() {
+  return `user_${Date.now()}_${Math.random().toString(36).slice(2, 7)}@test.com`;
 }
 
-async function loginUser(page: Page, username: string, password: string) {
-  await page.request.post('/api/auth/login', { data: { username, password } });
+async function registerUser(page: Page, email: string, password: string, displayName = 'Test User') {
+  await page.request.post('/api/auth/register', { data: { email, password, displayName } });
 }
 
-function uniqueUser() {
-  return `user_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+async function loginUser(page: Page, email: string, password: string) {
+  await page.request.post('/api/auth/login', { data: { email, password } });
 }
 
 test.beforeEach(async ({ context }) => {
@@ -22,9 +22,13 @@ test.describe('Registration', () => {
     await page.goto('/register');
   });
 
+  test('should display Google OAuth button', async ({ page }) => {
+    await expect(page.getByText('Mit Google registrieren').or(page.getByText('Mit Google anmelden'))).toBeVisible();
+  });
+
   test('should register a new user and redirect to login with success message', async ({ page }) => {
-    const username = uniqueUser();
-    await page.getByLabel('Benutzername').fill(username);
+    await page.getByLabel('Dein Name').fill('Max Mustermann');
+    await page.getByLabel('E-Mail').fill(uniqueEmail());
     await page.getByLabel('Passwort', { exact: true }).fill('SecurePass123!');
     await page.getByLabel('Passwort bestätigen').fill('SecurePass123!');
     await page.getByRole('button', { name: 'Registrieren' }).click();
@@ -33,38 +37,32 @@ test.describe('Registration', () => {
     await expect(page.getByText(/Registrierung erfolgreich/i)).toBeVisible();
   });
 
-  test('should show error when registering with duplicate username', async ({ page }) => {
-    const username = uniqueUser();
-    await registerUser(page, username, 'SecurePass123!');
+  test('should show error when registering with duplicate email', async ({ page }) => {
+    const email = uniqueEmail();
+    await registerUser(page, email, 'SecurePass123!');
 
-    await page.getByLabel('Benutzername').fill(username);
+    await page.getByLabel('Dein Name').fill('Another User');
+    await page.getByLabel('E-Mail').fill(email);
     await page.getByLabel('Passwort', { exact: true }).fill('SecurePass123!');
     await page.getByLabel('Passwort bestätigen').fill('SecurePass123!');
     await page.getByRole('button', { name: 'Registrieren' }).click();
 
-    await expect(page.getByText(/already exists/i)).toBeVisible();
-  });
-
-  test('should show validation error for invalid username', async ({ page }) => {
-    await page.getByLabel('Benutzername').fill('ab');
-    await page.getByLabel('Passwort', { exact: true }).fill('SecurePass123!');
-    await page.getByLabel('Passwort bestätigen').fill('SecurePass123!');
-    await page.getByRole('button', { name: 'Registrieren' }).click();
-
-    await expect(page.getByText(/username/i)).toBeVisible();
+    await expect(page.getByText(/bereits registriert/i)).toBeVisible();
   });
 
   test('should show validation error for short password', async ({ page }) => {
-    await page.getByLabel('Benutzername').fill(uniqueUser());
+    await page.getByLabel('Dein Name').fill('Test User');
+    await page.getByLabel('E-Mail').fill(uniqueEmail());
     await page.getByLabel('Passwort', { exact: true }).fill('short');
     await page.getByLabel('Passwort bestätigen').fill('short');
     await page.getByRole('button', { name: 'Registrieren' }).click();
 
-    await expect(page.getByText(/password/i)).toBeVisible();
+    await expect(page.getByText(/mindestens 8 Zeichen/i)).toBeVisible();
   });
 
   test('should show error when passwords do not match', async ({ page }) => {
-    await page.getByLabel('Benutzername').fill(uniqueUser());
+    await page.getByLabel('Dein Name').fill('Test User');
+    await page.getByLabel('E-Mail').fill(uniqueEmail());
     await page.getByLabel('Passwort', { exact: true }).fill('SecurePass123!');
     await page.getByLabel('Passwort bestätigen').fill('DifferentPass456!');
     await page.getByRole('button', { name: 'Registrieren' }).click();
@@ -85,12 +83,16 @@ test.describe('Login', () => {
     await page.goto('/login');
   });
 
-  test('should login with valid credentials and redirect to home', async ({ page }) => {
-    const username = uniqueUser();
-    const password = 'SecurePass123!';
-    await registerUser(page, username, password);
+  test('should display Google OAuth button', async ({ page }) => {
+    await expect(page.getByText('Mit Google anmelden')).toBeVisible();
+  });
 
-    await page.getByLabel('Benutzername').fill(username);
+  test('should login with valid credentials and redirect to home', async ({ page }) => {
+    const email = uniqueEmail();
+    const password = 'SecurePass123!';
+    await registerUser(page, email, password);
+
+    await page.getByLabel('E-Mail').fill(email);
     await page.getByLabel('Passwort').fill(password);
     await page.getByRole('button', { name: 'Anmelden' }).click();
 
@@ -98,22 +100,22 @@ test.describe('Login', () => {
   });
 
   test('should show error for wrong password', async ({ page }) => {
-    const username = uniqueUser();
-    await registerUser(page, username, 'SecurePass123!');
+    const email = uniqueEmail();
+    await registerUser(page, email, 'SecurePass123!');
 
-    await page.getByLabel('Benutzername').fill(username);
+    await page.getByLabel('E-Mail').fill(email);
     await page.getByLabel('Passwort').fill('WrongPassword!');
     await page.getByRole('button', { name: 'Anmelden' }).click();
 
-    await expect(page.getByText(/Invalid username or password/i)).toBeVisible();
+    await expect(page.getByText(/Ungültige Anmeldedaten/i)).toBeVisible();
   });
 
   test('should show error for non-existent user', async ({ page }) => {
-    await page.getByLabel('Benutzername').fill('nonexistent_user_xyz');
+    await page.getByLabel('E-Mail').fill('nobody@test.com');
     await page.getByLabel('Passwort').fill('SomePassword123!');
     await page.getByRole('button', { name: 'Anmelden' }).click();
 
-    await expect(page.getByText(/Invalid username or password/i)).toBeVisible();
+    await expect(page.getByText(/Ungültige Anmeldedaten/i)).toBeVisible();
   });
 
   test('should have a link to register page', async ({ page }) => {
@@ -131,10 +133,10 @@ test.describe('Login', () => {
 
 test.describe('Logout', () => {
   test('should logout and redirect to login', async ({ page }) => {
-    const username = uniqueUser();
+    const email = uniqueEmail();
     const password = 'SecurePass123!';
-    await registerUser(page, username, password);
-    await loginUser(page, username, password);
+    await registerUser(page, email, password);
+    await loginUser(page, email, password);
 
     await page.goto('/profile');
     await page.getByRole('button', { name: /Abmelden/i }).click();
@@ -143,10 +145,10 @@ test.describe('Logout', () => {
   });
 
   test('should redirect to login when visiting profile after logout', async ({ page }) => {
-    const username = uniqueUser();
+    const email = uniqueEmail();
     const password = 'SecurePass123!';
-    await registerUser(page, username, password);
-    await loginUser(page, username, password);
+    await registerUser(page, email, password);
+    await loginUser(page, email, password);
 
     await page.goto('/profile');
     await page.getByRole('button', { name: /Abmelden/i }).click();

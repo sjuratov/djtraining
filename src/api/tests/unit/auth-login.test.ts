@@ -1,21 +1,26 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../../src/app.js';
+import { createUser } from '../../src/models/user-store.js';
+import bcrypt from 'bcryptjs';
 
 describe('POST /api/auth/login', () => {
   const app = createApp();
 
+  beforeEach(async () => {
+    await request(app).post('/api/test/reset');
+  });
+
   it('should return 200 and set JWT cookie on successful login', async () => {
-    // Register a user first
     await request(app)
       .post('/api/auth/register')
-      .send({ username: 'loginuser', password: 'securepass123' });
+      .send({ email: 'login@example.com', password: 'SecurePass123!', displayName: 'Login User' });
 
     const res = await request(app)
       .post('/api/auth/login')
-      .send({ username: 'loginuser', password: 'securepass123' });
+      .send({ email: 'login@example.com', password: 'SecurePass123!' });
     expect(res.status).toBe(200);
-    expect(res.body.message).toBe('Login successful');
+    expect(res.body.message).toBe('Anmeldung erfolgreich');
 
     const cookies = res.headers['set-cookie'];
     expect(cookies).toBeDefined();
@@ -25,11 +30,11 @@ describe('POST /api/auth/login', () => {
   it('should set JWT cookie with correct security attributes', async () => {
     await request(app)
       .post('/api/auth/register')
-      .send({ username: 'cookieuser', password: 'securepass123' });
+      .send({ email: 'cookie@example.com', password: 'SecurePass123!', displayName: 'Cookie User' });
 
     const res = await request(app)
       .post('/api/auth/login')
-      .send({ username: 'cookieuser', password: 'securepass123' });
+      .send({ email: 'cookie@example.com', password: 'SecurePass123!' });
 
     const cookies = res.headers['set-cookie'];
     expect(cookies).toBeDefined();
@@ -44,21 +49,21 @@ describe('POST /api/auth/login', () => {
   it('should return 401 for invalid password', async () => {
     await request(app)
       .post('/api/auth/register')
-      .send({ username: 'wrongpass', password: 'securepass123' });
+      .send({ email: 'wrongpass@example.com', password: 'SecurePass123!', displayName: 'Wrong Pass' });
 
     const res = await request(app)
       .post('/api/auth/login')
-      .send({ username: 'wrongpass', password: 'wrongpassword' });
+      .send({ email: 'wrongpass@example.com', password: 'WrongPassword123!' });
     expect(res.status).toBe(401);
-    expect(res.body.error).toBe('Invalid username or password');
+    expect(res.body.error).toBe('Ungültige Anmeldedaten');
   });
 
   it('should return 401 for non-existent user', async () => {
     const res = await request(app)
       .post('/api/auth/login')
-      .send({ username: 'nonexistent', password: 'somepassword' });
+      .send({ email: 'nonexistent@example.com', password: 'SomePassword123!' });
     expect(res.status).toBe(401);
-    expect(res.body.error).toBe('Invalid username or password');
+    expect(res.body.error).toBe('Ungültige Anmeldedaten');
   });
 
   it('should return 400 when fields are missing', async () => {
@@ -66,6 +71,24 @@ describe('POST /api/auth/login', () => {
       .post('/api/auth/login')
       .send({});
     expect(res.status).toBe(400);
-    expect(res.body.error).toBe('Username and password are required');
+    expect(res.body.error).toBe('E-Mail und Passwort sind erforderlich');
+  });
+
+  it('should return 403 when user status is pending', async () => {
+    const passwordHash = await bcrypt.hash('SecurePass123!', 10);
+    createUser({
+      email: 'pending@example.com',
+      displayName: 'Pending User',
+      passwordHash,
+      authProvider: 'local',
+      confirmationToken: 'test-token',
+      googleId: null,
+    });
+
+    const res = await request(app)
+      .post('/api/auth/login')
+      .send({ email: 'pending@example.com', password: 'SecurePass123!' });
+    expect(res.status).toBe(403);
+    expect(res.body.error).toBe('Bitte bestätige zuerst deine E-Mail-Adresse');
   });
 });

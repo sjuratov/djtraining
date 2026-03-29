@@ -2,135 +2,205 @@ import { type Express } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'node:crypto';
-import { getUserByUsername, addUser, getUserById, getUsers } from '../models/user-store.js';
+import { getUserByEmail, getUserById, getUserByGoogleId, getUserByConfirmationToken, createUser, activateUser } from '../models/user-store.js';
 import { authMiddleware } from '../middleware/auth.js';
+import { emailService } from '../services/email.js';
+import { logger } from '../logger.js';
 
 const getSecret = (): string => {
   const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    throw new Error('JWT_SECRET environment variable is required');
-  }
+  if (!secret) throw new Error('JWT_SECRET environment variable is required');
   return secret;
 };
-const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,30}$/;
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function setAuthCookie(res: any, token: string) {
+  res.cookie('token', token, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'strict',
+    path: '/',
+    maxAge: 86400 * 1000,
+  });
+}
 
 export function mapAuthEndpoints(app: Express): void {
-  app.post('/api/auth/register', async (req, res) => {
-    const { username, password } = req.body as { username?: string; password?: string };
 
-    // Validate username first
-    if (!username) {
-      res.status(400).json({ error: 'Username is required' });
-      return;
-    }
-    if (!USERNAME_REGEX.test(username)) {
-      res.status(400).json({ error: 'Username must be between 3 and 30 characters and contain only letters, numbers, and underscores' });
-      return;
-    }
+  // REGISTER (local, email-based)
+  app.post('/api/auth/register', async (req, res) => {
+    const { email, password, displayName } = req.body;
+
+    // Validate email
+    if (!email) { res.status(400).json({ error: 'E-Mail ist erforderlich' }); return; }
+    if (!EMAIL_REGEX.test(email)) { res.status(400).json({ error: 'Ungültige E-Mail-Adresse' }); return; }
 
     // Validate password
-    if (!password) {
-      res.status(400).json({ error: 'Password is required' });
-      return;
-    }
-    if (password.length < 8) {
-      res.status(400).json({ error: 'Password must be at least 8 characters' });
-      return;
-    }
+    if (!password) { res.status(400).json({ error: 'Passwort ist erforderlich' }); return; }
+    if (password.length < 8) { res.status(400).json({ error: 'Passwort muss mindestens 8 Zeichen lang sein' }); return; }
+
+    // Validate displayName
+    if (!displayName || displayName.trim().length < 2) { res.status(400).json({ error: 'Name muss mindestens 2 Zeichen lang sein' }); return; }
 
     // Check uniqueness
-    if (getUserByUsername(username)) {
-      res.status(409).json({ error: 'Username already exists' });
-      return;
-    }
+    if (getUserByEmail(email)) { res.status(409).json({ error: 'E-Mail-Adresse ist bereits registriert' }); return; }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const role = getUsers().size === 0 ? 'admin' : 'user';
+    const confirmationToken = crypto.randomUUID();
 
-    const userId = crypto.randomUUID();
-    addUser({
-      id: userId,
-      username,
+    const user = createUser({
+      email,
+      displayName: displayName.trim(),
       passwordHash,
-      role,
-      createdAt: new Date(),
+      authProvider: 'local',
+      confirmationToken,
+      googleId: null,
     });
 
-    const token = jwt.sign(
-      { sub: userId, username, role },
-      getSecret(),
-      { expiresIn: '24h' },
-    );
+    // Send verification email (stub auto-confirms for now)
+    await emailService.sendVerificationEmail(email, confirmationToken);
 
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'strict',
-      path: '/',
-      maxAge: 86400 * 1000,
-    });
+    // AUTO-CONFIRM: In dev/stub mode, immediately activate the user
+    // Remove this line when real email provider is connected
+    activateUser(user.id);
 
-    res.status(201).json({ message: 'Registration successful', role });
+    res.status(201).json({ message: 'Registrierung erfolgreich', role: user.role });
   });
 
+  // VERIFY EMAIL
+  app.get('/api/auth/verify/:token', (req, res) => {
+    const user = getUserByConfirmationToken(req.params.token);
+    if (!user) { res.status(400).json({ error: 'Ungültiger oder abgelaufener Bestätigungslink' }); return; }
+
+    activateUser(user.id);
+    res.status(200).json({ message: 'E-Mail-Adresse erfolgreich bestätigt' });
+  });
+
+  // LOGIN (local, email-based)
   app.post('/api/auth/login', async (req, res) => {
-    const { username, password } = req.body as { username?: string; password?: string };
+    const { email, password } = req.body;
 
-    if (!username || !password) {
-      res.status(400).json({ error: 'Username and password are required' });
-      return;
-    }
+    if (!email || !password) { res.status(400).json({ error: 'E-Mail und Passwort sind erforderlich' }); return; }
 
-    const user = getUserByUsername(username);
-    if (!user) {
-      res.status(401).json({ error: 'Invalid username or password' });
-      return;
-    }
+    const user = getUserByEmail(email);
+    if (!user || !user.passwordHash) { res.status(401).json({ error: 'Ungültige Anmeldedaten' }); return; }
+
+    if (user.status !== 'active') { res.status(403).json({ error: 'Bitte bestätige zuerst deine E-Mail-Adresse' }); return; }
 
     const valid = await bcrypt.compare(password, user.passwordHash);
-    if (!valid) {
-      res.status(401).json({ error: 'Invalid username or password' });
-      return;
+    if (!valid) { res.status(401).json({ error: 'Ungültige Anmeldedaten' }); return; }
+
+    const token = jwt.sign({ sub: user.id, email: user.email, role: user.role }, getSecret(), { expiresIn: '24h' });
+    setAuthCookie(res, token);
+    res.status(200).json({ message: 'Anmeldung erfolgreich' });
+  });
+
+  // GOOGLE OAUTH - redirect to Google
+  app.get('/api/auth/google', (req, res) => {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (!clientId) { res.status(500).json({ error: 'Google OAuth not configured' }); return; }
+
+    const apiBaseUrl = `${req.protocol}://${req.get('host')}`;
+    const redirectUri = encodeURIComponent(`${apiBaseUrl}/api/auth/google/callback`);
+    const scope = encodeURIComponent('openid email profile');
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=offline&prompt=consent`;
+
+    res.redirect(authUrl);
+  });
+
+  // GOOGLE OAUTH - callback
+  app.get('/api/auth/google/callback', async (req, res) => {
+    const { code } = req.query;
+    const frontendUrl = process.env.APP_URL || 'http://localhost:3001';
+
+    if (!code) { res.redirect(`${frontendUrl}/login?error=google_failed`); return; }
+
+    try {
+      const clientId = process.env.GOOGLE_CLIENT_ID!;
+      const clientSecret = process.env.GOOGLE_CLIENT_SECRET!;
+      const apiBaseUrl = `${req.protocol}://${req.get('host')}`;
+      const redirectUri = `${apiBaseUrl}/api/auth/google/callback`;
+
+      // Exchange code for tokens
+      const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          code: code as string,
+          client_id: clientId,
+          client_secret: clientSecret,
+          redirect_uri: redirectUri,
+          grant_type: 'authorization_code',
+        }),
+      });
+
+      if (!tokenRes.ok) {
+        logger.error({ status: tokenRes.status }, 'Google token exchange failed');
+        res.redirect(`${frontendUrl}/login?error=google_failed`);
+        return;
+      }
+
+      const tokenData = await tokenRes.json() as { access_token: string };
+
+      // Get user info from Google
+      const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+      });
+
+      if (!userInfoRes.ok) { res.redirect(`${frontendUrl}/login?error=google_failed`); return; }
+
+      const googleUser = await userInfoRes.json() as { id: string; email: string; name: string };
+
+      // Find or create user
+      let user = getUserByGoogleId(googleUser.id);
+      if (!user) {
+        // Check if email already registered with local auth
+        const existingByEmail = getUserByEmail(googleUser.email);
+        if (existingByEmail) {
+          // Link Google to existing account
+          existingByEmail.googleId = googleUser.id;
+          existingByEmail.authProvider = 'google';
+          existingByEmail.status = 'active';
+          existingByEmail.confirmationToken = null;
+          user = existingByEmail;
+        } else {
+          user = createUser({
+            email: googleUser.email,
+            displayName: googleUser.name || googleUser.email,
+            passwordHash: null,
+            authProvider: 'google',
+            confirmationToken: null,
+            googleId: googleUser.id,
+          });
+        }
+      }
+
+      const jwtToken = jwt.sign({ sub: user.id, email: user.email, role: user.role }, getSecret(), { expiresIn: '24h' });
+      setAuthCookie(res, jwtToken);
+      res.redirect(frontendUrl);
+
+    } catch (err) {
+      logger.error({ err }, 'Google OAuth error');
+      res.redirect(`${frontendUrl}/login?error=google_failed`);
     }
-
-    const token = jwt.sign(
-      { sub: user.id, username: user.username, role: user.role },
-      getSecret(),
-      { expiresIn: '24h' },
-    );
-
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'strict',
-      path: '/',
-      maxAge: 86400 * 1000,
-    });
-
-    res.status(200).json({ message: 'Login successful' });
   });
 
+  // LOGOUT
   app.post('/api/auth/logout', (_req, res) => {
-    res.cookie('token', '', {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'strict',
-      path: '/',
-      maxAge: 0,
-    });
-    res.status(200).json({ message: 'Logged out successfully' });
+    res.cookie('token', '', { httpOnly: true, secure: true, sameSite: 'strict', path: '/', maxAge: 0 });
+    res.status(200).json({ message: 'Abmeldung erfolgreich' });
   });
 
+  // GET CURRENT USER
   app.get('/api/auth/me', authMiddleware, (req, res) => {
     const user = getUserById(req.user!.sub);
-    if (!user) {
-      res.status(401).json({ error: 'Not authenticated' });
-      return;
-    }
+    if (!user) { res.status(401).json({ error: 'Nicht authentifiziert' }); return; }
     res.status(200).json({
-      username: user.username,
+      email: user.email,
+      displayName: user.displayName,
       role: user.role,
-      createdAt: user.createdAt.toISOString(),
+      authProvider: user.authProvider,
+      createdAt: user.createdAt,
     });
   });
 }

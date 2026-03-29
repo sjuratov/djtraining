@@ -1,19 +1,22 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../../src/app.js';
 
 describe('POST /api/auth/logout', () => {
   const app = createApp();
 
+  beforeEach(async () => {
+    await request(app).post('/api/test/reset');
+  });
+
   it('should return 200 and clear the auth cookie', async () => {
-    // Register and login first
     await request(app)
       .post('/api/auth/register')
-      .send({ username: 'logoutuser', password: 'securepass123' });
+      .send({ email: 'logout@example.com', password: 'SecurePass123!', displayName: 'Logout User' });
 
     const loginRes = await request(app)
       .post('/api/auth/login')
-      .send({ username: 'logoutuser', password: 'securepass123' });
+      .send({ email: 'logout@example.com', password: 'SecurePass123!' });
 
     const loginCookies = loginRes.headers['set-cookie'];
 
@@ -21,9 +24,8 @@ describe('POST /api/auth/logout', () => {
       .post('/api/auth/logout')
       .set('Cookie', loginCookies);
     expect(res.status).toBe(200);
-    expect(res.body.message).toBe('Logged out successfully');
+    expect(res.body.message).toBe('Abmeldung erfolgreich');
 
-    // Cookie should be cleared (Max-Age=0 or Expires in the past)
     const cookies = res.headers['set-cookie'];
     expect(cookies).toBeDefined();
     const cookieStr = cookies.toString();
@@ -35,6 +37,6 @@ describe('POST /api/auth/logout', () => {
     const res = await request(app)
       .post('/api/auth/logout');
     expect(res.status).toBe(200);
-    expect(res.body.message).toBe('Logged out successfully');
+    expect(res.body.message).toBe('Abmeldung erfolgreich');
   });
 });

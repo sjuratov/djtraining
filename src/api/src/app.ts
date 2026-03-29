@@ -9,7 +9,7 @@ import { mapChatEndpoints } from './routes/chat.js';
 import { mapAuthEndpoints } from './routes/auth.js';
 import { mapAdminEndpoints } from './routes/admin.js';
 import { mapContactEndpoints } from './routes/contact.js';
-import { clearUsers, addUser, getUserByUsername, deleteUser } from './models/user-store.js';
+import { clearUsers, createUser, getUserByEmail, deleteUser, activateUser } from './models/user-store.js';
 
 export function createApp(): express.Express {
   const app = express();
@@ -36,22 +36,24 @@ export function createApp(): express.Express {
     });
 
     app.post('/api/test/create-user', async (req, res) => {
-      const { username, password, role, createdAt } = req.body;
+      const { email, displayName, password, role } = req.body;
       const bcrypt = await import('bcryptjs');
-      const crypto = await import('node:crypto');
       const passwordHash = await bcrypt.default.hash(password, 10);
-      addUser({
-        id: crypto.randomUUID(),
-        username,
+      const user = createUser({
+        email,
+        displayName: displayName || email,
         passwordHash,
-        role: role || 'user',
-        createdAt: createdAt ? new Date(createdAt) : new Date(),
+        authProvider: 'local',
+        confirmationToken: null,
+        googleId: null,
       });
+      if (role) { user.role = role; }
+      activateUser(user.id);
       res.json({ message: 'User created' });
     });
 
-    app.get('/api/test/user-hash/:username', (req, res) => {
-      const user = getUserByUsername(req.params.username);
+    app.get('/api/test/user-hash/:email', (req, res) => {
+      const user = getUserByEmail(req.params.email);
       if (!user) {
         res.status(404).json({ error: 'User not found' });
         return;
@@ -59,8 +61,8 @@ export function createApp(): express.Express {
       res.json({ passwordHash: user.passwordHash });
     });
 
-    app.delete('/api/test/users/:username', (req, res) => {
-      const user = getUserByUsername(req.params.username);
+    app.delete('/api/test/users/:email', (req, res) => {
+      const user = getUserByEmail(req.params.email);
       if (!user) {
         res.status(404).json({ error: 'User not found' });
         return;

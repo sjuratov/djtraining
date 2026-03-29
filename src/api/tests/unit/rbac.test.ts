@@ -1,18 +1,22 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../../src/app.js';
 
 describe('Role-Based Access Control — role assignment', () => {
-  it('should assign admin role to the first registered user', async () => {
-    const app = createApp();
+  const app = createApp();
 
+  beforeEach(async () => {
+    await request(app).post('/api/test/reset');
+  });
+
+  it('should assign admin role to the first registered user', async () => {
     await request(app)
       .post('/api/auth/register')
-      .send({ username: 'firstuser', password: 'securepass123' });
+      .send({ email: 'first@example.com', password: 'SecurePass123!', displayName: 'First User' });
 
     const loginRes = await request(app)
       .post('/api/auth/login')
-      .send({ username: 'firstuser', password: 'securepass123' });
+      .send({ email: 'first@example.com', password: 'SecurePass123!' });
 
     const cookies = loginRes.headers['set-cookie'];
 
@@ -24,21 +28,17 @@ describe('Role-Based Access Control — role assignment', () => {
   });
 
   it('should assign user role to subsequent registered users', async () => {
-    const app = createApp();
-
-    // First user gets admin
     await request(app)
       .post('/api/auth/register')
-      .send({ username: 'admin1', password: 'securepass123' });
+      .send({ email: 'admin@example.com', password: 'SecurePass123!', displayName: 'Admin User' });
 
-    // Second user should get 'user' role
     await request(app)
       .post('/api/auth/register')
-      .send({ username: 'regular1', password: 'securepass123' });
+      .send({ email: 'regular@example.com', password: 'SecurePass123!', displayName: 'Regular User' });
 
     const loginRes = await request(app)
       .post('/api/auth/login')
-      .send({ username: 'regular1', password: 'securepass123' });
+      .send({ email: 'regular@example.com', password: 'SecurePass123!' });
 
     const cookies = loginRes.headers['set-cookie'];
 

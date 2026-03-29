@@ -5,9 +5,12 @@ import { authMiddleware, requireRole } from '../middleware/auth.js';
 export function mapAdminEndpoints(app: Express): void {
   app.get('/api/admin/users', authMiddleware, requireRole('admin'), (_req, res) => {
     const users = getAllUsers().map(u => ({
-      username: u.username,
+      email: u.email,
+      displayName: u.displayName,
       role: u.role,
-      createdAt: u.createdAt.toISOString(),
+      authProvider: u.authProvider,
+      status: u.status,
+      createdAt: u.createdAt,
     }));
     res.status(200).json(users);
   });
