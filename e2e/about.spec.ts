@@ -27,7 +27,7 @@ test.describe('About Page (Über mich)', () => {
 
   test('should display studio section', async ({ page }) => {
     await expect(page.getByRole('heading', { name: /Mein Studio/ })).toBeVisible();
-    await expect(page.getByText(/Rösslimattstrasse 2c/)).toBeVisible();
+    await expect(page.locator('main').getByText(/Rösslimattstrasse 2c/)).toBeVisible();
   });
 
   test('should display photo or placeholder', async ({ page }) => {

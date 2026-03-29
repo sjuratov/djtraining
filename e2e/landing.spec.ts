@@ -11,8 +11,8 @@ test.describe('Homepage', () => {
   test('should display about teaser section', async ({ page }) => {
     await page.goto('/');
 
-    await expect(page.getByText(/Diana Juratovic/i)).toBeVisible();
-    await expect(page.getByRole('link', { name: /Mehr erfahren/i })).toBeVisible();
+    await expect(page.locator('main').getByText(/Diana Juratovic/i).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: /Mehr erfahren/i }).first()).toBeVisible();
   });
 
   test('should display three service cards', async ({ page }) => {

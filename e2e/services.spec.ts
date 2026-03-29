@@ -31,7 +31,7 @@ test.describe('Personal Training Page', () => {
   });
 
   test('should display three sub-services', async ({ page }) => {
-    await expect(page.getByText('Individuelles Training')).toBeVisible();
+    await expect(page.locator('main').getByText('Individuelles Training').first()).toBeVisible();
     await expect(page.getByText('HIIT Training')).toBeVisible();
     await expect(page.getByText('Vibrationstraining')).toBeVisible();
   });
@@ -79,15 +79,15 @@ test.describe('Gruppentraining Page', () => {
   });
 
   test('should display group details', async ({ page }) => {
-    await expect(page.getByText(/5 Personen/)).toBeVisible();
+    await expect(page.locator('main').getByText(/5 Personen/).first()).toBeVisible();
     await expect(page.getByText(/60 Minuten/)).toBeVisible();
   });
 
   test('should display schedule', async ({ page }) => {
-    await expect(page.getByText('Montag')).toBeVisible();
-    await expect(page.getByText('Donnerstag')).toBeVisible();
-    await expect(page.getByText('18:00')).toBeVisible();
-    await expect(page.getByText('19:15')).toBeVisible();
+    await expect(page.locator('main').getByText('Montag').first()).toBeVisible();
+    await expect(page.locator('main').getByText('Donnerstag').first()).toBeVisible();
+    await expect(page.locator('main').getByText('18:00').first()).toBeVisible();
+    await expect(page.locator('main').getByText('19:15').first()).toBeVisible();
   });
 
   test('should display pricing', async ({ page }) => {
@@ -116,8 +116,8 @@ test.describe('Ernährungscoaching Page', () => {
   });
 
   test('should highlight free initial consultation', async ({ page }) => {
-    await expect(page.getByText(/kostenlos/)).toBeVisible();
-    await expect(page.getByText(/Erstgespräch/)).toBeVisible();
+    await expect(page.locator('main').getByText(/kostenlos/).first()).toBeVisible();
+    await expect(page.locator('main').getByText(/Erstgespräch/).first()).toBeVisible();
   });
 
   test('should display pricing', async ({ page }) => {

@@ -10,23 +10,23 @@ test.describe('Training Schedule (Trainingszeiten)', () => {
   });
 
   test('should display Personal Training schedule', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: /Personal Training/ })).toBeVisible();
-    await expect(page.getByText('9:00–12:00')).toBeVisible();
-    await expect(page.getByText('16:00–21:00')).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Personal Training/ }).first()).toBeVisible();
+    await expect(page.getByText('9:00–12:00').first()).toBeVisible();
+    await expect(page.getByText('16:00–21:00').first()).toBeVisible();
   });
 
   test('should show weekdays for Personal Training', async ({ page }) => {
-    await expect(page.getByText('Montag')).toBeVisible();
-    await expect(page.getByText('Dienstag')).toBeVisible();
-    await expect(page.getByText('Mittwoch')).toBeVisible();
-    await expect(page.getByText('Donnerstag')).toBeVisible();
-    await expect(page.getByText('Freitag')).toBeVisible();
+    await expect(page.getByText('Montag').first()).toBeVisible();
+    await expect(page.getByText('Dienstag').first()).toBeVisible();
+    await expect(page.getByText('Mittwoch').first()).toBeVisible();
+    await expect(page.getByText('Donnerstag').first()).toBeVisible();
+    await expect(page.getByText('Freitag').first()).toBeVisible();
   });
 
   test('should display Gruppentraining schedule', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: /Gruppentraining/ })).toBeVisible();
-    await expect(page.getByText('18:00')).toBeVisible();
-    await expect(page.getByText('19:15')).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Gruppentraining/ }).first()).toBeVisible();
+    await expect(page.getByText('18:00').first()).toBeVisible();
+    await expect(page.getByText('19:15').first()).toBeVisible();
   });
 
   test('should show weekends as closed', async ({ page }) => {

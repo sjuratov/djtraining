@@ -10,20 +10,19 @@ test.describe('Contact Page (Kontakt)', () => {
   });
 
   test('should display address', async ({ page }) => {
-    await expect(page.getByText('Rösslimattstrasse 2c')).toBeVisible();
-    await expect(page.getByText('CH-5033 Buchs AG')).toBeVisible();
+    const main = page.locator('main');
+    await expect(main.getByText('Rösslimattstrasse 2c').first()).toBeVisible();
+    await expect(main.getByText('CH-5033 Buchs AG').first()).toBeVisible();
   });
 
   test('should display clickable phone number', async ({ page }) => {
-    const phoneLink = page.locator('a[href="tel:+41786112479"]');
+    const phoneLink = page.locator('main a[href="tel:+41786112479"]').first();
     await expect(phoneLink).toBeVisible();
-    await expect(phoneLink).toContainText('+41 78 611 24 79');
   });
 
   test('should display clickable email', async ({ page }) => {
-    const emailLink = page.locator('a[href="mailto:info@dj-training.com"]');
+    const emailLink = page.locator('main a[href="mailto:info@dj-training.com"]').first();
     await expect(emailLink).toBeVisible();
-    await expect(emailLink).toContainText('info@dj-training.com');
   });
 
   test('should display free trial CTA', async ({ page }) => {

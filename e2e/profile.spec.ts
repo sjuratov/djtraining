@@ -27,7 +27,7 @@ test.describe('Profile Page', () => {
     await page.goto('/profile');
 
     await expect(page.getByRole('heading', { name: 'Mein Profil' })).toBeVisible();
-    await expect(page.getByText(username)).toBeVisible();
+    await expect(page.locator('main').getByText(username)).toBeVisible();
     await expect(page.locator('[data-testid="role-badge"]')).toBeVisible();
     await expect(page.getByText(/Mitglied seit/i)).toBeVisible();
   });

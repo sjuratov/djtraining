@@ -73,7 +73,7 @@ test.describe('Registration', () => {
   });
 
   test('should have a link to login page', async ({ page }) => {
-    const loginLink = page.getByRole('link', { name: /Anmelden/i });
+    const loginLink = page.locator('main').getByRole('link', { name: /Anmelden/i });
     await expect(loginLink).toBeVisible();
     await loginLink.click();
     await expect(page).toHaveURL(/\/login/);
@@ -105,7 +105,7 @@ test.describe('Login', () => {
     await page.getByLabel('Passwort').fill('WrongPassword!');
     await page.getByRole('button', { name: 'Anmelden' }).click();
 
-    await expect(page.getByText(/Ungültige Anmeldedaten/i)).toBeVisible();
+    await expect(page.getByText(/Invalid username or password/i)).toBeVisible();
   });
 
   test('should show error for non-existent user', async ({ page }) => {
@@ -113,7 +113,7 @@ test.describe('Login', () => {
     await page.getByLabel('Passwort').fill('SomePassword123!');
     await page.getByRole('button', { name: 'Anmelden' }).click();
 
-    await expect(page.getByText(/Ungültige Anmeldedaten/i)).toBeVisible();
+    await expect(page.getByText(/Invalid username or password/i)).toBeVisible();
   });
 
   test('should have a link to register page', async ({ page }) => {

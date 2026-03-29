@@ -24,7 +24,7 @@ test.describe('Navigation', () => {
     await page.goto('/');
     const footer = page.locator('footer');
 
-    await expect(footer.getByText("DJ's Training")).toBeVisible();
+    await expect(footer.getByRole('heading', { name: "DJ's Training" })).toBeVisible();
     await expect(footer.getByText(/Rösslimattstrasse 2c/)).toBeVisible();
     await expect(footer.getByText(/CH-5033 Buchs AG/)).toBeVisible();
   });

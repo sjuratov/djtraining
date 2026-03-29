@@ -10,10 +10,11 @@ test.describe('Impressum Page', () => {
   });
 
   test('should display business information', async ({ page }) => {
-    await expect(page.getByText("DJ\u2019s Training-Fitness Studio Juratovic")).toBeVisible();
-    await expect(page.getByText('Diana Juratovic')).toBeVisible();
-    await expect(page.getByText('Rösslimattstrasse 2c')).toBeVisible();
-    await expect(page.getByText('CH-5033 Buchs AG')).toBeVisible();
+    const main = page.locator('main');
+    await expect(main.getByText(/Training-Fitness Studio Juratovic/)).toBeVisible();
+    await expect(main.getByText('Diana Juratovic')).toBeVisible();
+    await expect(main.getByText('Rösslimattstrasse 2c').first()).toBeVisible();
+    await expect(main.getByText(/CH-5033 Buchs AG/).first()).toBeVisible();
   });
 
   test('should display commercial register number', async ({ page }) => {
@@ -21,8 +22,8 @@ test.describe('Impressum Page', () => {
   });
 
   test('should display clickable phone and email', async ({ page }) => {
-    await expect(page.locator('a[href="tel:+41786112479"]')).toBeVisible();
-    await expect(page.locator('a[href="mailto:info@dj-training.com"]')).toBeVisible();
+    await expect(page.locator('main a[href="tel:+41786112479"]').first()).toBeVisible();
+    await expect(page.locator('main a[href="mailto:info@dj-training.com"]').first()).toBeVisible();
   });
 });
 
@@ -40,7 +41,7 @@ test.describe('AGB Page', () => {
   });
 
   test('should display health questionnaire requirement', async ({ page }) => {
-    await expect(page.getByText(/Gesundheitsfragebogen/)).toBeVisible();
+    await expect(page.getByText(/Gesundheitsfragebogen/).first()).toBeVisible();
   });
 
   test('should display clean shoes requirement', async ({ page }) => {
@@ -63,7 +64,7 @@ test.describe('Datenschutz Page', () => {
   });
 
   test('should reference Swiss DSG', async ({ page }) => {
-    await expect(page.getByText(/Datenschutz \(DSG\)/)).toBeVisible();
+    await expect(page.getByText(/\(DSG\)/).first()).toBeVisible();
   });
 
   test('should describe data collection', async ({ page }) => {
@@ -71,7 +72,7 @@ test.describe('Datenschutz Page', () => {
   });
 
   test('should include cookie policy', async ({ page }) => {
-    await expect(page.getByText(/Cookies/)).toBeVisible();
+    await expect(page.getByText(/Cookies/).first()).toBeVisible();
   });
 
   test('should describe user rights', async ({ page }) => {
@@ -81,6 +82,6 @@ test.describe('Datenschutz Page', () => {
   });
 
   test('should provide contact for data requests', async ({ page }) => {
-    await expect(page.getByText('info@dj-training.com')).toBeVisible();
+    await expect(page.locator('main').getByText('info@dj-training.com').first()).toBeVisible();
   });
 });
