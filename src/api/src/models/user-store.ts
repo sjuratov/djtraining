@@ -39,13 +39,15 @@ export interface User {
 }
 
 const users = new Map<string, User>();
+const normalizeEmail = (email: string): string => email.trim().toLowerCase();
 
 export function getUsers(): Map<string, User> { return users; }
 export function getAllUsers(): User[] { return Array.from(users.values()); }
 export function getUserById(id: string): User | undefined { return users.get(id); }
 
 export function getUserByEmail(email: string): User | undefined {
-  return Array.from(users.values()).find(u => u.email === email);
+  const normalizedEmail = normalizeEmail(email);
+  return Array.from(users.values()).find(u => normalizeEmail(u.email) === normalizedEmail);
 }
 
 export function getUserByConfirmationToken(token: string): User | undefined {
@@ -72,9 +74,8 @@ export function createUser(params: {
   confirmationToken: string | null;
   googleId: string | null;
 }): User {
-  const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase();
-  const isAdmin = (adminEmail && params.email.toLowerCase() === adminEmail)
-    || users.size === 0;
+  const adminEmail = process.env.ADMIN_EMAIL ? normalizeEmail(process.env.ADMIN_EMAIL) : null;
+  const isAdmin = adminEmail !== null && normalizeEmail(params.email) === adminEmail;
   const user: User = {
     id: crypto.randomUUID(),
     email: params.email,

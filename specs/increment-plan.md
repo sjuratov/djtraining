@@ -410,3 +410,168 @@ No Tier 1 findings — no active exploits, no auth bypass, no RCE, no data expos
 - **Dependencies:** none
 - **Rollback Plan:** Remove NODE_ENV check
 - **Risk:** Low — conditional behavior based on environment
+
+---
+
+## Follow-up Security Remediation Increments
+
+Generated from the post-remediation reassessment in `specs/assessment/security.md`.
+Ordered by priority tier (Tier 2 → 3 → 4). No Tier 1 findings remain.
+
+---
+
+### Tier 2 — High Priority
+
+---
+
+## sec-014: Remove First-User Admin Bootstrap
+
+- **Type:** security
+- **Tier:** 2 (High)
+- **Vulnerability:** The first registered user becomes admin when `ADMIN_EMAIL` is not configured. On a fresh shared or deployed environment, the first public signup can seize admin access (finding H1, OWASP A01/A04).
+- **Scope:** `src/api/src/models/user-store.ts` only. Remove the `users.size === 0` bootstrap path for shared/deployed environments and require explicit admin bootstrap configuration. No unrelated user model changes.
+- **Acceptance Criteria:**
+  - [ ] First public signup no longer receives `admin` by default
+  - [ ] Explicitly configured admin bootstrap path still works as designed
+  - [ ] Existing non-admin registration/login flows still work unchanged
+- **Test Strategy:**
+  - Add reproduction test: fresh store + no `ADMIN_EMAIL` → first signup gets `user`
+  - Add regression test: configured admin bootstrap still yields `admin`
+  - Run full auth/admin regression suite
+  - Re-run security assessment to confirm finding cleared
+- **Gherkin Deltas:**
+  - New: `Scenario: First public registration does not grant admin rights` — verifies default role is least privilege
+  - Modified: `Scenario: Explicit admin bootstrap grants admin rights` — admin assignment must come from configuration, not registration order
+  - Regression: Existing registration, login, and admin-access scenarios must still pass
+- **Dependencies:** none
+- **Rollback Plan:** Revert `createUser()` admin role bootstrap logic
+- **Risk:** Low — isolated role-assignment logic
+
+---
+
+## sec-015: Re-authorize Requests from Current User State
+
+- **Type:** security
+- **Tier:** 2 (High)
+- **Vulnerability:** Authorization trusts stale JWT role claims. A demoted or deleted user can retain privileged access until token expiry (finding H2, OWASP A01/A07).
+- **Scope:** `src/api/src/middleware/auth.ts` and the smallest necessary route integrations only. Load the current user on each authenticated request, reject missing/inactive users, and authorize from current persisted role instead of stale token claims.
+- **Acceptance Criteria:**
+  - [ ] Demoted admin loses admin access immediately on the next request
+  - [ ] Deleted users receive 401 on subsequent authenticated requests
+  - [ ] Normal authenticated requests for unchanged users still succeed
+- **Test Strategy:**
+  - Add reproduction test: login as admin, demote, then admin endpoint returns 403 without waiting for JWT expiry
+  - Add reproduction test: login, delete user, then authenticated endpoint returns 401
+  - Run full auth/profile/admin regression suite
+  - Re-run security assessment to confirm finding cleared
+- **Gherkin Deltas:**
+  - New: `Scenario: Demoted admin loses privileged access immediately` — verifies authz uses current role
+  - New: `Scenario: Deleted account can no longer access protected routes` — verifies authenticated sessions are invalidated by current user lookup
+  - Regression: Existing authenticated user flows must still pass for active users
+- **Dependencies:** none
+- **Rollback Plan:** Revert middleware to token-claims-only authorization
+- **Risk:** Medium — touches core auth middleware and RBAC behavior
+
+---
+
+### Tier 3 — Medium Priority
+
+---
+
+## sec-016: Upgrade Next.js to Patched Release
+
+- **Type:** security
+- **Tier:** 3 (Medium)
+- **Vulnerability:** `src/web` still uses `next@16.1.6`, which `npm audit` reports as vulnerable; a fix is available in a patched release (finding M1, OWASP A06).
+- **Scope:** `src/web/package.json`, `src/web/package-lock.json`, and the minimum dependency alignment needed for `next` and `eslint-config-next`. No application feature work.
+- **Acceptance Criteria:**
+  - [ ] `next` and companion packages are updated to a patched release
+  - [ ] `npm audit` for `src/web` reports 0 production vulnerabilities
+  - [ ] Web build and full e2e suite remain green
+- **Test Strategy:**
+  - Run `npm audit` in `src/web` after upgrade
+  - Run `npm run build` in `src/web`
+  - Run full Playwright regression suite
+  - Re-run security assessment to confirm dependency finding cleared
+- **Gherkin Deltas:**
+  - Regression: All existing web and e2e scenarios must pass unchanged
+- **Dependencies:** none
+- **Rollback Plan:** Revert `src/web/package.json` and `src/web/package-lock.json`
+- **Risk:** Medium — framework patch could surface compatibility issues
+
+---
+
+## sec-017: Enforce Email Verification Before Local Login
+
+- **Type:** security
+- **Tier:** 3 (Medium)
+- **Vulnerability:** Local registration sends a verification email but auto-activates the account, bypassing the intended verification gate before login (finding M2, OWASP A07).
+- **Scope:** `src/api/src/routes/auth.ts`, `src/api/src/services/email.ts`, and the smallest required configuration path only. Remove auto-activation outside explicit local development mode and keep Google-authenticated users unaffected.
+- **Acceptance Criteria:**
+  - [ ] Newly registered local users remain `pending` until verification
+  - [ ] Unverified local users cannot log in
+  - [ ] Verified local users can log in successfully
+  - [ ] Google OAuth users remain active without email confirmation
+- **Test Strategy:**
+  - Add reproduction test: local user registration does not activate account automatically
+  - Add reproduction test: unverified local login returns 403
+  - Add regression test: verified local user login succeeds
+  - Run full auth regression suite
+  - Re-run security assessment to confirm finding cleared
+- **Gherkin Deltas:**
+  - Modified: `Scenario: User registers with email and password` — Then step changes from immediate login eligibility to pending verification
+  - New: `Scenario: Unverified local user cannot log in`
+  - Regression: Existing Google OAuth scenarios must still pass unchanged
+- **Dependencies:** none
+- **Rollback Plan:** Restore auto-activation in local registration flow
+- **Risk:** Medium — intentional behavior change in the core auth journey
+
+---
+
+### Tier 4 — Low Priority (Defense-in-Depth)
+
+---
+
+## sec-018: Remove Verification URLs from Shared Logs
+
+- **Type:** security
+- **Tier:** 4 (Low)
+- **Vulnerability:** Verification URLs are still written to debug logs, which can expose tokens in environments that aggregate debug output (finding L1, OWASP A09).
+- **Scope:** `src/api/src/services/email.ts` only. Stop logging token-bearing URLs outside explicit local-only diagnostics, and log delivery metadata instead.
+- **Acceptance Criteria:**
+  - [ ] Production-like/shared environments emit no verification tokens in logs
+  - [ ] Local-only diagnostics can still support manual verification if explicitly enabled
+  - [ ] Registration flow still functions
+- **Test Strategy:**
+  - Add test: production-like config emits no token-bearing log message
+  - Add regression test: email service still builds verification URL for delivery
+  - Run auth registration regression tests
+  - Re-run security assessment to confirm finding cleared
+- **Gherkin Deltas:**
+  - Regression: Existing registration and verification scenarios must still pass unchanged
+- **Dependencies:** sec-017
+- **Rollback Plan:** Restore existing debug log behavior
+- **Risk:** Low — logging-only change
+
+---
+
+## sec-019: Make Test Routes Impossible in Deployed Environments
+
+- **Type:** security
+- **Tier:** 4 (Low)
+- **Vulnerability:** Test helper routes are still configuration-sensitive. They are improved, but exposure still depends on deployment discipline (finding L2, OWASP A05).
+- **Scope:** Deployment/runtime configuration and the smallest necessary server guard in `src/api/src/app.ts`. Ensure deployed environments cannot accidentally expose test routes even if misconfigured.
+- **Acceptance Criteria:**
+  - [ ] Test routes remain available for local/test automation only
+  - [ ] Production/staging startup path cannot enable test routes by accident
+  - [ ] Existing test harness still works in explicit test mode
+- **Test Strategy:**
+  - Add test: production-like config never registers test routes
+  - Add regression test: explicit test config still registers them for automation
+  - Run full API and e2e regression suites
+  - Re-run security assessment to confirm finding cleared
+- **Gherkin Deltas:**
+  - Regression: Existing automated test setup scenarios must still pass in test mode
+- **Dependencies:** none
+- **Rollback Plan:** Revert stricter test-route registration guard
+- **Risk:** Low — configuration-focused hardening

@@ -228,12 +228,11 @@ describe('GET /api/admin/users/:userId/profile', () => {
   });
 
   it('should allow admin to view any user profile', async () => {
-    // First user becomes admin
     const adminCookies = await createUserAndLogin('admin@example.com', {
       displayName: 'Admin',
+      role: 'admin',
     });
 
-    // Second user is regular
     const userCookies = await createUserAndLogin('member@example.com', {
       displayName: 'Member',
     });
@@ -265,10 +264,8 @@ describe('GET /api/admin/users/:userId/profile', () => {
   });
 
   it('should return 403 for non-admin user', async () => {
-    // First user becomes admin
-    await createUserAndLogin('admin@example.com');
+    await createUserAndLogin('admin@example.com', { role: 'admin' });
 
-    // Second user is regular
     const userCookies = await createUserAndLogin('regular@example.com');
 
     const res = await request(app)
@@ -280,7 +277,7 @@ describe('GET /api/admin/users/:userId/profile', () => {
   });
 
   it('should return 404 for non-existent userId', async () => {
-    const adminCookies = await createUserAndLogin('admin@example.com');
+    const adminCookies = await createUserAndLogin('admin@example.com', { role: 'admin' });
 
     const res = await request(app)
       .get('/api/admin/users/non-existent-id/profile')
@@ -293,6 +290,19 @@ describe('GET /api/admin/users/:userId/profile', () => {
   it('should return 401 without authentication', async () => {
     const res = await request(app)
       .get('/api/admin/users/some-id/profile');
+
+    expect(res.status).toBe(401);
+    expect(res.body.error).toBe('Not authenticated');
+  });
+
+  it('should return 401 after the authenticated user is deleted', async () => {
+    const cookies = await createUserAndLogin('deleted@example.com');
+
+    await request(app).delete('/api/test/users/deleted@example.com');
+
+    const res = await request(app)
+      .get('/api/profile')
+      .set('Cookie', cookies);
 
     expect(res.status).toBe(401);
     expect(res.body.error).toBe('Not authenticated');

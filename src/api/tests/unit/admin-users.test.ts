@@ -11,8 +11,8 @@ describe('GET /api/admin/users', () => {
 
   it('should return 200 with user list for admin', async () => {
     await request(app)
-      .post('/api/auth/register')
-      .send({ email: 'admin@example.com', password: 'SecurePass123!', displayName: 'Admin User' });
+      .post('/api/test/create-user')
+      .send({ email: 'admin@example.com', password: 'SecurePass123!', displayName: 'Admin User', role: 'admin' });
 
     const loginRes = await request(app)
       .post('/api/auth/login')
@@ -36,8 +36,8 @@ describe('GET /api/admin/users', () => {
 
   it('should return 403 for non-admin users', async () => {
     await request(app)
-      .post('/api/auth/register')
-      .send({ email: 'firstadmin@example.com', password: 'SecurePass123!', displayName: 'First Admin' });
+      .post('/api/test/create-user')
+      .send({ email: 'firstadmin@example.com', password: 'SecurePass123!', displayName: 'First Admin', role: 'admin' });
 
     await request(app)
       .post('/api/auth/register')
@@ -65,8 +65,8 @@ describe('GET /api/admin/users', () => {
 
   it('should not include passwordHash in response', async () => {
     await request(app)
-      .post('/api/auth/register')
-      .send({ email: 'nohash@example.com', password: 'SecurePass123!', displayName: 'No Hash User' });
+      .post('/api/test/create-user')
+      .send({ email: 'nohash@example.com', password: 'SecurePass123!', displayName: 'No Hash User', role: 'admin' });
 
     const loginRes = await request(app)
       .post('/api/auth/login')
@@ -83,5 +83,40 @@ describe('GET /api/admin/users', () => {
       expect(user).not.toHaveProperty('passwordHash');
       expect(user).toHaveProperty('id');
     }
+  });
+
+  it('should immediately revoke admin access after demotion', async () => {
+    await request(app)
+      .post('/api/test/create-user')
+      .send({ email: 'admin1@example.com', password: 'SecurePass123!', displayName: 'Admin 1', role: 'admin' });
+    await request(app)
+      .post('/api/test/create-user')
+      .send({ email: 'admin2@example.com', password: 'SecurePass123!', displayName: 'Admin 2', role: 'admin' });
+
+    const admin1Login = await request(app)
+      .post('/api/auth/login')
+      .send({ email: 'admin1@example.com', password: 'SecurePass123!' });
+    const admin2Login = await request(app)
+      .post('/api/auth/login')
+      .send({ email: 'admin2@example.com', password: 'SecurePass123!' });
+
+    const admin1Cookies = admin1Login.headers['set-cookie'];
+    const admin2Cookies = admin2Login.headers['set-cookie'];
+
+    const usersRes = await request(app)
+      .get('/api/admin/users')
+      .set('Cookie', admin1Cookies);
+    const admin2 = usersRes.body.find((user: { email: string }) => user.email === 'admin2@example.com');
+
+    await request(app)
+      .post(`/api/admin/users/${admin2.id}/demote`)
+      .set('Cookie', admin1Cookies);
+
+    const res = await request(app)
+      .get('/api/admin/users')
+      .set('Cookie', admin2Cookies);
+
+    expect(res.status).toBe(403);
+    expect(res.body.error).toBe('Forbidden');
   });
 });

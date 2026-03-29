@@ -1,11 +1,11 @@
 # Security Assessment
 
 ## Summary
-- **Assessment depth**: Level 2 (auto-escalated from Level 1: >3 high-severity findings)
-- **Total findings**: 14
-- **Critical: 0 | High: 5 | Medium: 6 | Low: 3**
+- **Assessment depth**: Level 3
+- **Total findings**: 6
+- **Critical: 0 | High: 2 | Medium: 2 | Low: 2**
 - **OWASP categories affected**: A01, A04, A05, A06, A07, A09
-- **Escalation triggered**: Yes — 4 high-severity dependency CVEs + auth architectural gaps
+- **Escalation triggered**: Yes — manual Level 2 auth/authz review found architectural access-control issues, so the assessment was extended to Level 3
 
 ## Findings
 
@@ -17,92 +17,87 @@ No critical findings.
 
 | # | OWASP | Finding | Location | Remediation | Effort |
 |---|-------|---------|----------|-------------|--------|
-| H1 | A07 | **Google OAuth missing `state` parameter** — no CSRF protection on OAuth flow. Attacker can force-link their Google account to a victim's session. | `src/api/src/routes/auth.ts:98-108, 111-180` | Generate random `state` token, store in session/cookie before redirect, validate on callback. | Low |
-| H2 | A07 | **No rate limiting on auth endpoints** — login/register/OAuth are unlimited. Enables brute-force password attacks and credential stuffing. | `src/api/src/routes/auth.ts` (all auth endpoints) | Add `express-rate-limit` middleware: 5 attempts/15 min for login, 3/hour for register. | Low |
-| H3 | A06 | **Vulnerable dependencies (API)** — `path-to-regexp@8.x` (ReDoS), `flatted` (prototype pollution + DoS), `picomatch` (ReDoS), `rollup` (vuln), `minimatch` (ReDoS) | `src/api/package-lock.json` | Run `npm audit fix`. For unfixable: evaluate if vulnerable code paths are reachable. | Low |
-| H4 | A06 | **Vulnerable dependencies (Web)** — `next@16.1.6` (moderate CVE), `flatted` (prototype pollution), `picomatch` (ReDoS), `minimatch` (ReDoS) | `src/web/package-lock.json` | Run `npm audit fix`. Update Next.js when patch available. | Low |
-| H5 | A05 | **Dev/test endpoints expose sensitive data** — `/api/test/reset`, `/api/test/create-user`, `/api/test/user-hash/:email` return password hashes and allow arbitrary user creation. Gated by `NODE_ENV !== 'production'` but risky if misconfigured. | `src/api/src/app.ts:33-75` | Add secondary safeguard: check for explicit `ENABLE_TEST_ROUTES=true` env var. Ensure deployment configs set `NODE_ENV=production`. | Low |
+| H1 | A01, A04 | **First registered user becomes admin when `ADMIN_EMAIL` is not configured**. `createUser()` still grants admin rights when `users.size === 0`. On a fresh deployment or reset environment, the first public signup can seize admin access. | `src/api/src/models/user-store.ts:75-95` | Remove the first-user fallback for any shared or deployed environment. Require explicit admin bootstrap via seeded account, migration script, or invite flow. | Low |
+| H2 | A01, A07 | **Authorization trusts stale JWT role claims**. `authMiddleware` verifies the token signature but does not reload the current user record. A user who was demoted after login keeps admin access until the JWT expires. Deleted users can also continue hitting protected routes that do not re-check user existence. | `src/api/src/middleware/auth.ts:26-49`, `src/api/src/routes/admin.ts:6-50`, `src/api/src/routes/profile.ts:82-124` | Load the current user on every authenticated request, reject missing/inactive users, and authorize against the current persisted role. Add token versioning or revocation if role changes must take effect immediately. | Medium |
 
 ### Medium
 
 | # | OWASP | Finding | Location | Remediation | Effort |
 |---|-------|---------|----------|-------------|--------|
-| M1 | A05 | **CORS wide open** — `cors()` with no options allows any origin. | `src/api/src/app.ts:18-23` | Configure `origin` allowlist: `[process.env.APP_URL]` and `credentials: true`. | Low |
-| M2 | A09 | **Verification token logged** — confirmation URL with token written to console via email stub. If logs are exposed/aggregated, tokens can be harvested. | `src/api/src/services/email.ts:14-20` | Remove token logging in production. Use structured log with level `debug` only. | Low |
-| M3 | A07 | **Confirmation tokens have no expiry** — tokens remain valid indefinitely until used. | `src/api/src/models/user-store.ts` (no `tokenExpiresAt` field) | Add `tokenExpiresAt` field to User model. Set to 24h on creation. Check expiry on verify. | Low |
-| M4 | A04 | **No centralized error handler** — uncaught exceptions fall to Express defaults, which may leak stack traces in non-production mode. | `src/api/src/app.ts` (no error middleware) | Add `app.use((err, req, res, next) => ...)` that logs error and returns generic 500. | Low |
-| M5 | A07 | **Email verification auto-confirms** — registration stub immediately activates user, bypassing the verification flow. | `src/api/src/services/email.ts:19` (`activateUser` call) | Remove auto-activation when real email provider is connected. Document that stub behavior is dev-only. | Low |
-| M6 | A04 | **Contact form: no input validation** — no email format check, no message length limit, no honeypot. Abuse vector for spam. | `src/api/src/routes/contact.ts:5-16` | Add email regex, max message length (2000 chars), optional honeypot field. | Low |
+| M1 | A06 | **Web app still uses vulnerable `next@16.1.6`**. `npm audit` reports multiple advisories affecting versions below `16.1.7`, with a fix available in `16.2.1`. | `src/web/package.json`, `src/web/package-lock.json` | Upgrade `next` and `eslint-config-next` to a patched release, then rebuild and rerun the full regression suite. | Low |
+| M2 | A07 | **Email verification is not actually enforced for local signups**. The registration flow sends a verification email but then immediately activates the account, so the requirement “confirm via link before login” is currently bypassed for local auth. | `src/api/src/routes/auth.ts:87-94`, `src/api/src/services/email.ts:9-18` | Replace the stub with a real mail provider and remove the auto-activation path outside explicit local development mode. Add tests that prove unverified users cannot log in. | Medium |
 
 ### Low
 
 | # | OWASP | Finding | Location | Remediation | Effort |
 |---|-------|---------|----------|-------------|--------|
-| L1 | A01 | **Chat endpoints unauthenticated** — `/api/chat/sessions` and `/api/chat/sessions/:id/messages` require no auth. Any visitor can create sessions and send messages. | `src/api/src/routes/chat.ts:5-23` | Add `authMiddleware` if chat is user-specific. Add rate limiting either way. | Low |
-| L2 | A05 | **Helmet uses defaults only** — CSP, HSTS, and frame-ancestor policies are not tuned for production. | `src/api/src/app.ts:18` | Configure `helmet({ contentSecurityPolicy: { directives: {...} }, hsts: { maxAge: 31536000 } })`. | Low |
-| L3 | A07 | **OAuth redirect URI built from Host header** — `req.protocol` + `req.get('host')` used to construct Google OAuth redirect URI. Could be manipulated via Host header injection. | `src/api/src/routes/auth.ts:103-106` | Use `process.env.API_URL` or a fixed config value instead of request headers. | Low |
+| L1 | A09 | **Verification URLs are still emitted to debug logs**. This is much better than info-level logging, but the token remains recoverable in environments that collect debug logs. | `src/api/src/services/email.ts:20-31` | Log only delivery metadata in shared environments, or gate token logging behind a dedicated local-only flag. | Low |
+| L2 | A05 | **Test helper routes remain configuration-sensitive**. They now require `ENABLE_TEST_ROUTES=true` and non-production mode, which is a strong improvement, but exposure still depends on deployment discipline. | `src/api/src/app.ts:65-98` | Ensure all deployed environments pin `NODE_ENV=production` and never set `ENABLE_TEST_ROUTES`. Prefer excluding the routes entirely from production builds if possible. | Low |
 
-## Positive Findings (What's Done Well)
+## Positive Findings
 
 | Area | Status | Details |
 |------|--------|---------|
-| Password hashing | ✅ Strong | bcrypt with cost factor 10 |
-| JWT expiry | ✅ Good | 24h expiration |
-| Cookie security | ✅ Strong | `httpOnly`, `secure`, `sameSite: 'strict'` |
-| Helmet enabled | ✅ Present | Default protections active |
-| No SQL injection surface | ✅ Safe | In-memory Map store, no query construction |
-| No XSS sinks | ✅ Safe | React rendering, no `dangerouslySetInnerHTML` |
-| No eval/exec | ✅ Safe | No dynamic code execution in production |
-| No hardcoded secrets | ✅ Clean | `.env` gitignored, only placeholders committed |
-| No weak crypto | ✅ Safe | bcrypt for passwords, no MD5/SHA1 |
-| No file uploads | ✅ N/A | No upload attack surface |
+| OAuth CSRF protection | ✅ Fixed | Google OAuth now uses a random `state` cookie and validates it on callback |
+| Auth rate limiting | ✅ Fixed | Login, registration, OAuth, and chat endpoints are rate-limited |
+| Test route exposure | ✅ Improved | Test routes require explicit `ENABLE_TEST_ROUTES=true` and no longer expose password hashes |
+| CORS policy | ✅ Fixed | API now uses an origin allowlist with credentialed requests |
+| Error handling | ✅ Fixed | Generic centralized 500 handler prevents stack-trace leakage to clients |
+| Confirmation token expiry | ✅ Fixed | Verification tokens expire after 24 hours |
+| Contact validation | ✅ Fixed | Contact endpoint validates required fields, email format, and message length |
+| Security headers | ✅ Improved | Helmet is configured with CSP and HSTS |
+| Dependency posture (API/root) | ✅ Clean | `npm audit` returned 0 prod vulnerabilities for root and API packages |
+| Secrets in git | ✅ Clean | `.env` is ignored, `client_secret_*.json` is ignored, and no hardcoded secrets were found in tracked files |
+| Password storage | ✅ Strong | Passwords use bcrypt |
+| Dynamic code execution | ✅ Clean | No `eval`/`exec` patterns found in the application code paths reviewed |
 
 ## OWASP Top 10 Coverage
 
 | OWASP ID | Category | Findings | Status |
 |----------|----------|----------|--------|
-| A01 | Broken Access Control | L1 (chat unauthenticated) | ⚠️ Low risk |
-| A02 | Cryptographic Failures | — | ✅ No issues |
-| A03 | Injection | — | ✅ No SQL/XSS surface |
-| A04 | Insecure Design | M4, M6 | ⚠️ Medium |
-| A05 | Security Misconfiguration | H5, M1, L2 | 🔴 Needs attention |
-| A06 | Vulnerable Components | H3, H4 | 🔴 Dependency updates needed |
-| A07 | Auth Failures | H1, H2, M3, M5, L3 | 🔴 Primary concern |
-| A08 | Integrity Failures | — | ✅ No issues |
-| A09 | Logging & Monitoring | M2 | ⚠️ Token leakage in logs |
-| A10 | SSRF | — | ✅ No issues |
+| A01 | Broken Access Control | H1, H2 | 🔴 Needs attention |
+| A02 | Cryptographic Failures | — | ✅ No material issues found in this review |
+| A03 | Injection | — | ✅ No SQL/XSS injection surface identified in reviewed code |
+| A04 | Insecure Design | H1 | ⚠️ Design decision needs tightening |
+| A05 | Security Misconfiguration | L2 | ⚠️ Configuration discipline still matters |
+| A06 | Vulnerable and Outdated Components | M1 | ⚠️ One remaining dependency issue |
+| A07 | Identification and Authentication Failures | H2, M2 | 🔴 Needs attention |
+| A08 | Software and Data Integrity Failures | — | ✅ No material issues found in this review |
+| A09 | Security Logging and Monitoring Failures | L1 | ⚠️ Low-risk log hygiene gap remains |
+| A10 | Server-Side Request Forgery | — | ✅ No SSRF surface identified in reviewed code |
 
 ## Remediation Roadmap
 
-Priority-ordered. Items 1-3 should be fixed before any production deployment.
+Priority-ordered, smallest-change-first:
 
-### Before Production (Must Fix)
+1. **Remove first-user admin bootstrap in deployed environments** (`H1`)
+   - Dependency: none
+   - Verification: fresh-environment test proving first public signup gets `user`, not `admin`
 
-1. **H1 — Add OAuth `state` parameter** — prevents login CSRF
-2. **H2 — Add rate limiting** — prevents brute-force on auth
-3. **H5 — Harden test routes** — add secondary safeguard beyond NODE_ENV
-4. **M1 — Configure CORS origin allowlist** — prevent cross-origin abuse
-5. **H3/H4 — Run `npm audit fix`** — patch vulnerable dependencies
+2. **Re-authorize from current user state instead of trusting JWT role claims** (`H2`)
+   - Dependency: none
+   - Verification: login as admin, demote account, confirm admin endpoints become forbidden without waiting for token expiry
 
-### Before Public Launch (Should Fix)
+3. **Upgrade Next.js to a patched release** (`M1`)
+   - Dependency: none
+   - Verification: `npm audit` for `src/web` returns 0 production vulnerabilities and full build/e2e remain green
 
-6. **M4 — Add centralized error handler** — prevent info leakage
-7. **M3 — Add confirmation token expiry** — limit token reuse window
-8. **M6 — Validate contact form input** — prevent spam/abuse
-9. **L3 — Use fixed API_URL for OAuth redirect** — prevent Host header manipulation
-10. **L2 — Configure Helmet policies** — tighten CSP and HSTS
+4. **Enforce email verification before local login** (`M2`)
+   - Dependency: real or environment-gated mail strategy
+   - Verification: unverified local user cannot log in; verified user can
 
-### Ongoing Maintenance
+5. **Stop logging verification URLs outside explicit local development** (`L1`)
+   - Dependency: aligns with item 4
+   - Verification: production-like config emits no token-bearing logs
 
-11. **M2 — Remove token logging** — when real email provider connected
-12. **M5 — Remove auto-confirm** — when real email provider connected
-13. **L1 — Decide on chat auth strategy** — auth-required vs rate-limited anonymous
-14. **H3/H4 — Dependency monitoring** — set up automated dependency scanning
+6. **Keep test routes impossible to enable in deployed environments** (`L2`)
+   - Dependency: deployment config review
+   - Verification: staging/production startup config excludes `ENABLE_TEST_ROUTES=true`
 
 ## Decision Points
 
 | Decision | Options | Suggested ADR |
 |----------|---------|---------------|
-| Rate limiting strategy | In-memory vs Redis-backed vs API gateway | ADR: Rate Limiting Approach |
-| Chat authentication | Require login vs anonymous with rate limits | ADR: Chat Access Control |
-| Secrets management for production | Env vars vs Azure Key Vault vs managed identity | ADR: Production Secrets Strategy |
+| Admin bootstrap strategy | Seeded admin account, invite-only promotion, or manual admin CLI | ADR: Admin Bootstrap Strategy |
+| Authz source of truth | Trust JWT claims only, reload current user on every request, or add token-version revocation | ADR: Session Authorization Model |
+| Production email verification | Resend, SMTP provider, or another transactional email service | ADR: Email Verification Delivery Strategy |

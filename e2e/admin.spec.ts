@@ -12,6 +12,12 @@ async function loginUser(page: Page, email: string, password: string) {
   await page.request.post('/api/auth/login', { data: { email, password } });
 }
 
+async function createAdminUser(page: Page, email: string, password: string, displayName = 'Admin User') {
+  await page.request.post('http://localhost:5001/api/test/create-user', {
+    data: { email, password, displayName, role: 'admin' },
+  });
+}
+
 test.beforeEach(async ({ context }) => {
   await context.request.post('http://localhost:5001/api/test/reset');
   await context.clearCookies();
@@ -21,7 +27,7 @@ test.describe('Admin Dashboard', () => {
   test('admin should see a table with all users', async ({ page }) => {
     const adminEmail = uniqueEmail();
     const password = 'SecurePass123!';
-    await registerUser(page, adminEmail, password, 'Admin User');
+    await createAdminUser(page, adminEmail, password, 'Admin User');
 
     const regularEmail = uniqueEmail();
     await registerUser(page, regularEmail, password, 'Regular User');
@@ -38,7 +44,7 @@ test.describe('Admin Dashboard', () => {
 
   test('non-admin user should see access denied message', async ({ page }) => {
     const adminEmail = uniqueEmail();
-    await registerUser(page, adminEmail, 'SecurePass123!', 'Admin');
+    await createAdminUser(page, adminEmail, 'SecurePass123!', 'Admin');
 
     const regularEmail = uniqueEmail();
     const password = 'SecurePass123!';
@@ -61,7 +67,7 @@ test.describe('Admin Member Profiles', () => {
   test.beforeEach(async ({ page, request }) => {
     await request.post('http://localhost:5001/api/test/reset');
     await request.post('http://localhost:5001/api/test/create-user', {
-      data: { email: 'admin@test.de', displayName: 'Admin Test', password: 'admin1234' },
+      data: { email: 'admin@test.de', displayName: 'Admin Test', password: 'admin1234', role: 'admin' },
     });
     await request.post('http://localhost:5001/api/test/create-user', {
       data: { email: 'member@test.de', displayName: 'Member Test', password: 'member1234' },
