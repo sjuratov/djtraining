@@ -29,7 +29,13 @@
     { "id": "inc-2", "name": "Content Pages", "status": "complete" },
     { "id": "inc-3", "name": "Testimonials", "status": "complete" },
     { "id": "inc-4", "name": "Auth + Admin", "status": "complete" },
-    { "id": "inc-5", "name": "Admin Dashboard", "status": "complete" }
+    { "id": "inc-5", "name": "Admin Dashboard", "status": "complete" },
+    { "id": "sec-014", "type": "security", "tier": 2, "status": "complete" },
+    { "id": "sec-015", "type": "security", "tier": 2, "status": "complete" },
+    { "id": "sec-016", "type": "security", "tier": 3, "status": "planned" },
+    { "id": "sec-017", "type": "security", "tier": 3, "status": "planned" },
+    { "id": "sec-018", "type": "security", "tier": 4, "status": "planned" },
+    { "id": "sec-019", "type": "security", "tier": 4, "status": "planned" }
   ],
   "currentIncrement": null,
   "increments": {
@@ -51,8 +57,9 @@
     "plan-approved": true
   },
   "testsStatus": {
-    "apiUnit": { "total": 35, "passed": 35, "failed": 0 },
-    "webBuild": { "routes": 17, "status": "green" }
+    "apiUnit": { "total": 58, "passed": 58, "failed": 0 },
+    "webBuild": { "routes": 19, "status": "green" },
+    "e2e": { "total": 110, "passed": 110, "failed": 0 }
   },
-  "lastUpdated": "2026-03-29T06:53:00Z"
+  "lastUpdated": "2026-03-29T13:46:05Z"
 }
