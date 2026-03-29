@@ -2,6 +2,7 @@ import { type Express } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'node:crypto';
+import rateLimit from 'express-rate-limit';
 import { getUserByEmail, getUserById, getUserByGoogleId, getUserByConfirmationToken, createUser, activateUser } from '../models/user-store.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { emailService } from '../services/email.js';
@@ -27,8 +28,34 @@ function setAuthCookie(res: any, token: string) {
 
 export function mapAuthEndpoints(app: Express): void {
 
+  const isTest = process.env.NODE_ENV === 'test' || process.env.ENABLE_TEST_ROUTES === 'true';
+
+  const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: isTest ? 1000 : 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Zu viele Anmeldeversuche. Bitte versuche es in 15 Minuten erneut.' },
+  });
+
+  const registerLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: isTest ? 1000 : 3,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Zu viele Registrierungsversuche. Bitte versuche es in einer Stunde erneut.' },
+  });
+
+  const oauthLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: isTest ? 1000 : 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Zu viele Anfragen. Bitte versuche es später erneut.' },
+  });
+
   // REGISTER (local, email-based)
-  app.post('/api/auth/register', async (req, res) => {
+  app.post('/api/auth/register', registerLimiter, async (req, res) => {
     const { email, password, displayName } = req.body;
 
     // Validate email
@@ -72,12 +99,17 @@ export function mapAuthEndpoints(app: Express): void {
     const user = getUserByConfirmationToken(req.params.token);
     if (!user) { res.status(400).json({ error: 'Ungültiger oder abgelaufener Bestätigungslink' }); return; }
 
+    if (user.tokenExpiresAt && new Date(user.tokenExpiresAt) < new Date()) {
+      res.status(400).json({ error: 'Bestätigungslink ist abgelaufen. Bitte registriere dich erneut.' });
+      return;
+    }
+
     activateUser(user.id);
     res.status(200).json({ message: 'E-Mail-Adresse erfolgreich bestätigt' });
   });
 
   // LOGIN (local, email-based)
-  app.post('/api/auth/login', async (req, res) => {
+  app.post('/api/auth/login', loginLimiter, async (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) { res.status(400).json({ error: 'E-Mail und Passwort sind erforderlich' }); return; }
@@ -96,29 +128,40 @@ export function mapAuthEndpoints(app: Express): void {
   });
 
   // GOOGLE OAUTH - redirect to Google
-  app.get('/api/auth/google', (req, res) => {
+  app.get('/api/auth/google', oauthLimiter, (req, res) => {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     if (!clientId) { res.status(500).json({ error: 'Google OAuth not configured' }); return; }
 
-    const apiBaseUrl = `${req.protocol}://${req.get('host')}`;
+    const state = crypto.randomUUID();
+    res.cookie('oauth_state', state, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 5 * 60 * 1000 });
+
+    const apiBaseUrl = process.env.API_URL || `${req.protocol}://${req.get('host')}`;
     const redirectUri = encodeURIComponent(`${apiBaseUrl}/api/auth/google/callback`);
     const scope = encodeURIComponent('openid email profile');
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=offline&prompt=consent`;
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=offline&prompt=consent&state=${state}`;
 
     res.redirect(authUrl);
   });
 
   // GOOGLE OAUTH - callback
   app.get('/api/auth/google/callback', async (req, res) => {
-    const { code } = req.query;
+    const { code, state } = req.query;
     const frontendUrl = process.env.APP_URL || 'http://localhost:3001';
+    const expectedState = req.cookies?.oauth_state;
+
+    if (!state || !expectedState || state !== expectedState) {
+      res.clearCookie('oauth_state');
+      res.redirect(`${frontendUrl}/login?error=invalid_state`);
+      return;
+    }
+    res.clearCookie('oauth_state');
 
     if (!code) { res.redirect(`${frontendUrl}/login?error=google_failed`); return; }
 
     try {
       const clientId = process.env.GOOGLE_CLIENT_ID!;
       const clientSecret = process.env.GOOGLE_CLIENT_SECRET!;
-      const apiBaseUrl = `${req.protocol}://${req.get('host')}`;
+      const apiBaseUrl = process.env.API_URL || `${req.protocol}://${req.get('host')}`;
       const redirectUri = `${apiBaseUrl}/api/auth/google/callback`;
 
       // Exchange code for tokens

@@ -32,6 +32,7 @@ export interface User {
   status: 'pending' | 'active';
   authProvider: 'local' | 'google';
   confirmationToken: string | null;
+  tokenExpiresAt: string | null;
   googleId: string | null;
   createdAt: string;
   profile: MemberProfile | null;
@@ -83,6 +84,9 @@ export function createUser(params: {
     status: params.authProvider === 'google' ? 'active' : 'pending',
     authProvider: params.authProvider,
     confirmationToken: params.confirmationToken,
+    tokenExpiresAt: params.confirmationToken
+      ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+      : null,
     googleId: params.googleId,
     createdAt: new Date().toISOString(),
     profile: null,
