@@ -8,28 +8,65 @@ test.describe('Testimonials (Kundenstimmen)', () => {
     await expect(page.getByText(/Kundinnen und Kunden/i)).toBeVisible();
   });
 
-  test('should display all 17 testimonial cards', async ({ page }) => {
+  test('should display all 18 testimonial cards', async ({ page }) => {
     await page.goto('/kundenstimmen');
 
     const cards = page.locator('article');
-    await expect(cards).toHaveCount(17);
+    await expect(cards).toHaveCount(18);
   });
 
-  test('should display client names in testimonials', async ({ page }) => {
+  test('should display real client names in testimonials', async ({ page }) => {
     await page.goto('/kundenstimmen');
 
-    await expect(page.getByText('Sandra M.')).toBeVisible();
-    await expect(page.getByText('Thomas K.')).toBeVisible();
-    await expect(page.getByText('Claudia B.')).toBeVisible();
-    await expect(page.getByText('Andreas H.')).toBeVisible();
-    await expect(page.getByText('Franziska E.')).toBeVisible();
+    await expect(page.getByText('Monika Huber')).toBeVisible();
+    await expect(page.getByText('Andrea Gut')).toBeVisible();
+    await expect(page.getByText('Sabine Do-Thuong')).toBeVisible();
+    await expect(page.getByText('Regina Lanner')).toBeVisible();
+    await expect(page.getByText('Paula Cruz')).toBeVisible();
   });
 
   test('should display testimonial text in German', async ({ page }) => {
     await page.goto('/kundenstimmen');
 
-    await expect(page.getByText(/fantastische Trainerin/i)).toBeVisible();
+    await expect(page.getByText(/kompetente Trainerin/i).first()).toBeVisible();
     await expect(page.getByText(/Gruppentraining/i).first()).toBeVisible();
+  });
+
+  test('should show "Mehr lesen" for long reviews', async ({ page }) => {
+    await page.goto('/kundenstimmen');
+
+    const mehrLesen = page.getByText('Mehr lesen');
+    const count = await mehrLesen.count();
+    expect(count).toBeGreaterThan(0);
+  });
+
+  test('should open modal when clicking "Mehr lesen"', async ({ page }) => {
+    await page.goto('/kundenstimmen');
+
+    await page.getByText('Mehr lesen').first().click();
+
+    const modal = page.locator('[role="dialog"]');
+    await expect(modal).toBeVisible();
+    await expect(modal.getByRole('button', { name: /schliessen|×/i })).toBeVisible();
+  });
+
+  test('should close modal when clicking close button', async ({ page }) => {
+    await page.goto('/kundenstimmen');
+
+    await page.getByText('Mehr lesen').first().click();
+    const modal = page.locator('[role="dialog"]');
+    await expect(modal).toBeVisible();
+
+    await modal.getByRole('button', { name: /schliessen|×/i }).click();
+    await expect(modal).not.toBeVisible();
+  });
+
+  test('should not show "Mehr lesen" for short reviews', async ({ page }) => {
+    await page.goto('/kundenstimmen');
+
+    // Myophysio has a very short review — its card should NOT have "Mehr lesen"
+    const myophysioCard = page.locator('article', { hasText: 'Myophysio' });
+    await expect(myophysioCard.getByText('Mehr lesen')).not.toBeVisible();
   });
 
   test('should use responsive grid layout', async ({ page }) => {
