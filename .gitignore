@@ -53,3 +53,6 @@ apphost.settings.json
 *.pfx
 *.crt
 *.p12
+
+# Google OAuth credentials
+client_secret_*.json
