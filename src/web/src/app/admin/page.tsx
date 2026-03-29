@@ -181,6 +181,7 @@ function ProfilePanel({ userId, onClose }: { userId: string; onClose: () => void
 
 export default function AdminPage() {
   const [users, setUsers] = useState<User[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [denied, setDenied] = useState(false);
   const [search, setSearch] = useState('');
@@ -204,6 +205,7 @@ export default function AdminPage() {
           setLoading(false);
           return;
         }
+        setCurrentUserId(data.sub);
         return fetch('/api/admin/users')
           .then((res) => {
             if (!res.ok) throw new Error('Failed');
@@ -215,6 +217,13 @@ export default function AdminPage() {
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  async function toggleRole(userId: string, currentRole: string) {
+    const action = currentRole === 'admin' ? 'demote' : 'promote';
+    const res = await fetch(`/api/admin/users/${userId}/${action}`, { method: 'POST' });
+    if (!res.ok) return;
+    setUsers(users.map(u => u.id === userId ? { ...u, role: currentRole === 'admin' ? 'user' : 'admin' } : u));
+  }
 
   const filteredUsers = users.filter((u) => {
     if (!search) return true;
@@ -288,6 +297,15 @@ export default function AdminPage() {
                     }`}>
                       {u.role === 'admin' ? 'Admin' : 'Benutzer'}
                     </span>
+                    {u.id !== currentUserId && (
+                      <button
+                        data-testid={`toggle-role-${u.id}`}
+                        onClick={() => toggleRole(u.id, u.role)}
+                        className="ml-2 rounded px-2 py-0.5 text-xs font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                      >
+                        {u.role === 'admin' ? 'Herabstufen' : 'Befördern'}
+                      </button>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${

@@ -71,13 +71,15 @@ export function createUser(params: {
   confirmationToken: string | null;
   googleId: string | null;
 }): User {
-  const isFirstUser = users.size === 0;
+  const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase();
+  const isAdmin = (adminEmail && params.email.toLowerCase() === adminEmail)
+    || users.size === 0;
   const user: User = {
     id: crypto.randomUUID(),
     email: params.email,
     displayName: params.displayName,
     passwordHash: params.passwordHash,
-    role: isFirstUser ? 'admin' : 'user',
+    role: isAdmin ? 'admin' : 'user',
     status: params.authProvider === 'google' ? 'active' : 'pending',
     authProvider: params.authProvider,
     confirmationToken: params.confirmationToken,
@@ -91,6 +93,13 @@ export function createUser(params: {
 
 export function deleteUser(id: string): void { users.delete(id); }
 export function clearUsers(): void { users.clear(); }
+
+export function setUserRole(userId: string, role: 'admin' | 'user'): User | undefined {
+  const user = users.get(userId);
+  if (!user) return undefined;
+  user.role = role;
+  return user;
+}
 
 export function getProfile(userId: string): MemberProfile | null {
   const user = users.get(userId);

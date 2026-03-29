@@ -196,6 +196,7 @@ export function mapAuthEndpoints(app: Express): void {
     const user = getUserById(req.user!.sub);
     if (!user) { res.status(401).json({ error: 'Nicht authentifiziert' }); return; }
     res.status(200).json({
+      sub: user.id,
       email: user.email,
       displayName: user.displayName,
       role: user.role,
