@@ -33,9 +33,9 @@
     { "id": "sec-014", "type": "security", "tier": 2, "status": "complete" },
     { "id": "sec-015", "type": "security", "tier": 2, "status": "complete" },
     { "id": "sec-016", "type": "security", "tier": 3, "status": "complete" },
-    { "id": "sec-017", "type": "security", "tier": 3, "status": "planned" },
-    { "id": "sec-018", "type": "security", "tier": 4, "status": "planned" },
-    { "id": "sec-019", "type": "security", "tier": 4, "status": "planned" }
+    { "id": "sec-017", "type": "security", "tier": 3, "status": "complete" },
+    { "id": "sec-018", "type": "security", "tier": 4, "status": "complete" },
+    { "id": "sec-019", "type": "security", "tier": 4, "status": "complete" }
   ],
   "currentIncrement": null,
   "increments": {
@@ -57,9 +57,9 @@
     "plan-approved": true
   },
   "testsStatus": {
-    "apiUnit": { "total": 58, "passed": 58, "failed": 0 },
-    "webBuild": { "routes": 19, "status": "green" },
-    "e2e": { "total": 110, "passed": 110, "failed": 0 }
+    "apiUnit": { "total": 69, "passed": 69, "failed": 0 },
+    "webBuild": { "routes": 18, "status": "green" },
+    "e2e": { "total": 111, "passed": 111, "failed": 0 }
   },
-  "lastUpdated": "2026-03-29T14:02:18Z"
+  "lastUpdated": "2026-04-03T09:54:37Z"
 }
