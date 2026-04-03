@@ -22,12 +22,29 @@ export interface ClientPackage {
   remainingSessions: number;
   purchasedAt: string;
   expiresAt: string | null;
+  effectiveExpiresAt: string | null;
+  graceUntil: string | null;
+  graceReason: string | null;
+  graceSetBy: string | null;
+  graceSetAt: string | null;
   status: 'active' | 'expired' | 'depleted';
+  isExpired: boolean;
+  isExpiringSoon: boolean;
+  isBookable: boolean;
+  daysUntilExpiry: number | null;
   notes: string | null;
   createdAt: string;
   // Joined fields
   packageName?: string;
   trainingCategory?: string;
+  userEmail?: string;
+  userDisplayName?: string;
+}
+
+const REMINDER_WINDOW_DAYS = 14;
+
+function getTodayIsoDate(): string {
+  return new Date().toISOString();
 }
 
 // ── Row types ──
@@ -51,11 +68,17 @@ interface ClientPackageRow {
   remaining_sessions: number;
   purchased_at: string;
   expires_at: string | null;
+  grace_until: string | null;
+  grace_reason: string | null;
+  grace_set_by: string | null;
+  grace_set_at: string | null;
   status: string;
   notes: string | null;
   created_at: string;
   package_name?: string;
   training_category?: string;
+  user_email?: string;
+  user_display_name?: string;
 }
 
 // ── Mappers ──
@@ -73,7 +96,27 @@ function rowToPackageDefinition(row: PackageDefinitionRow): PackageDefinition {
   };
 }
 
+function getEffectiveExpiry(expiresAt: string | null, graceUntil: string | null): string | null {
+  return graceUntil ?? expiresAt;
+}
+
+function getDaysUntil(expiry: string | null): number | null {
+  if (!expiry) {
+    return null;
+  }
+
+  return Math.ceil((new Date(expiry).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+}
+
 function rowToClientPackage(row: ClientPackageRow): ClientPackage {
+  const effectiveExpiresAt = getEffectiveExpiry(row.expires_at, row.grace_until);
+  const daysUntilExpiry = getDaysUntil(effectiveExpiresAt);
+  const isExpired = typeof daysUntilExpiry === 'number' ? daysUntilExpiry < 0 : false;
+  const isExpiringSoon = typeof daysUntilExpiry === 'number'
+    ? daysUntilExpiry >= 0 && daysUntilExpiry <= REMINDER_WINDOW_DAYS
+    : false;
+  const isBookable = row.status === 'active' && row.remaining_sessions > 0 && !isExpired;
+
   return {
     id: row.id,
     userId: row.user_id,
@@ -82,12 +125,35 @@ function rowToClientPackage(row: ClientPackageRow): ClientPackage {
     remainingSessions: row.remaining_sessions,
     purchasedAt: row.purchased_at,
     expiresAt: row.expires_at,
+    effectiveExpiresAt,
+    graceUntil: row.grace_until,
+    graceReason: row.grace_reason,
+    graceSetBy: row.grace_set_by,
+    graceSetAt: row.grace_set_at,
     status: row.status as ClientPackage['status'],
+    isExpired,
+    isExpiringSoon,
+    isBookable,
+    daysUntilExpiry,
     notes: row.notes,
     createdAt: row.created_at,
     packageName: row.package_name,
     trainingCategory: row.training_category,
+    userEmail: row.user_email,
+    userDisplayName: row.user_display_name,
   };
+}
+
+function syncClientPackageStatuses(): void {
+  const db = getDb();
+  db.prepare(`
+    UPDATE client_packages
+    SET status = CASE
+      WHEN remaining_sessions <= 0 THEN 'depleted'
+      WHEN COALESCE(grace_until, expires_at) IS NOT NULL AND COALESCE(grace_until, expires_at) < ? THEN 'expired'
+      ELSE 'active'
+    END
+  `).run(getTodayIsoDate());
 }
 
 // ── Package Definitions (admin) ──
@@ -155,23 +221,28 @@ export function updatePackageDefinition(id: string, params: {
 // ── Client Packages ──
 
 const CLIENT_PACKAGE_JOIN_SQL = `
-  SELECT cp.*, pd.name as package_name, pd.training_category
+  SELECT cp.*, pd.name as package_name, pd.training_category, u.email as user_email, u.display_name as user_display_name
   FROM client_packages cp
   JOIN package_definitions pd ON cp.package_def_id = pd.id
+  JOIN users u ON cp.user_id = u.id
 `;
 
 export function getClientPackages(userId: string, activeOnly = false): ClientPackage[] {
   const db = getDb();
+  syncClientPackageStatuses();
   let sql = `${CLIENT_PACKAGE_JOIN_SQL} WHERE cp.user_id = ?`;
+  const values: unknown[] = [userId];
   if (activeOnly) {
-    sql += " AND cp.status = 'active'";
+    sql += " AND cp.status = 'active' AND (COALESCE(cp.grace_until, cp.expires_at) IS NULL OR COALESCE(cp.grace_until, cp.expires_at) >= ?)";
+    values.push(getTodayIsoDate());
   }
   sql += ' ORDER BY cp.purchased_at DESC';
-  return (db.prepare(sql).all(userId) as ClientPackageRow[]).map(rowToClientPackage);
+  return (db.prepare(sql).all(...values) as ClientPackageRow[]).map(rowToClientPackage);
 }
 
-function getClientPackageById(id: string): ClientPackage | undefined {
+export function getClientPackageById(id: string): ClientPackage | undefined {
   const db = getDb();
+  syncClientPackageStatuses();
   const row = db.prepare(`${CLIENT_PACKAGE_JOIN_SQL} WHERE cp.id = ?`).get(id) as ClientPackageRow | undefined;
   return row ? rowToClientPackage(row) : undefined;
 }
@@ -201,6 +272,7 @@ export function assignPackage(params: {
     VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)
   `).run(id, params.userId, params.packageDefId, pkgDef.totalSessions, pkgDef.totalSessions, now, expiresAt, params.notes ?? null, now);
 
+  syncClientPackageStatuses();
   return getClientPackageById(id)!;
 }
 
@@ -215,31 +287,82 @@ export function adjustRemainingSessions(packageId: string, delta: number, _reaso
   if (newRemaining < 0) {
     return { error: 'Verbleibende Sitzungen können nicht negativ werden' };
   }
+  if (newRemaining > pkg.totalSessions) {
+    return { error: 'Verbleibende Sitzungen können nicht über das maximale Paketkontingent steigen' };
+  }
 
-  const newStatus = newRemaining === 0 ? 'depleted' : 'active';
-  db.prepare('UPDATE client_packages SET remaining_sessions = ?, status = ? WHERE id = ?').run(newRemaining, newStatus, packageId);
+  db.prepare('UPDATE client_packages SET remaining_sessions = ? WHERE id = ?').run(newRemaining, packageId);
+  syncClientPackageStatuses();
 
+  return getClientPackageById(packageId)!;
+}
+
+export function setPackageGrace(packageId: string, params: {
+  graceUntil: string;
+  reason: string;
+  adminId: string;
+}): ClientPackage | { error: string } {
+  const db = getDb();
+  const pkg = getClientPackageById(packageId);
+  if (!pkg) {
+    return { error: 'Paket nicht gefunden' };
+  }
+
+  if (!pkg.expiresAt) {
+    return { error: 'Dieses Abo hat kein Ablaufdatum und benötigt keine Verlängerung.' };
+  }
+
+  const reason = params.reason.trim();
+  if (!reason) {
+    return { error: 'Bitte gib einen Grund für die Verlängerung an.' };
+  }
+
+  const graceDate = params.graceUntil.includes('T')
+    ? new Date(params.graceUntil)
+    : new Date(`${params.graceUntil}T23:59:59.999`);
+  if (Number.isNaN(graceDate.getTime())) {
+    return { error: 'Bitte gib ein gültiges neues Enddatum an.' };
+  }
+
+  if (graceDate.getTime() <= Date.now()) {
+    return { error: 'Das neue Enddatum muss in der Zukunft liegen.' };
+  }
+
+  if (graceDate.getTime() <= new Date(pkg.expiresAt).getTime()) {
+    return { error: 'Das neue Enddatum muss nach dem ursprünglichen Ablaufdatum liegen.' };
+  }
+
+  db.prepare(`
+    UPDATE client_packages
+    SET grace_until = ?, grace_reason = ?, grace_set_by = ?, grace_set_at = ?
+    WHERE id = ?
+  `).run(graceDate.toISOString(), reason, params.adminId, new Date().toISOString(), packageId);
+
+  syncClientPackageStatuses();
   return getClientPackageById(packageId)!;
 }
 
 export function getActivePackageForBooking(userId: string, trainingCategory: string): ClientPackage | undefined {
   const db = getDb();
+  syncClientPackageStatuses();
   const row = db.prepare(`
     ${CLIENT_PACKAGE_JOIN_SQL}
     WHERE cp.user_id = ? AND pd.training_category = ? AND cp.status = 'active' AND cp.remaining_sessions > 0
-    ORDER BY cp.expires_at IS NULL, cp.expires_at ASC, cp.purchased_at ASC
+      AND (COALESCE(cp.grace_until, cp.expires_at) IS NULL OR COALESCE(cp.grace_until, cp.expires_at) >= ?)
+    ORDER BY COALESCE(cp.grace_until, cp.expires_at) IS NULL, COALESCE(cp.grace_until, cp.expires_at) ASC, cp.purchased_at ASC
     LIMIT 1
-  `).get(userId, trainingCategory) as ClientPackageRow | undefined;
+  `).get(userId, trainingCategory, getTodayIsoDate()) as ClientPackageRow | undefined;
   return row ? rowToClientPackage(row) : undefined;
 }
 
 export function getPackageForCreditBack(userId: string, trainingCategory: string): ClientPackage | undefined {
   const db = getDb();
+  syncClientPackageStatuses();
   // Find active or depleted package matching category (FIFO by expiry)
   const row = db.prepare(`
     ${CLIENT_PACKAGE_JOIN_SQL}
-    WHERE cp.user_id = ? AND pd.training_category = ? AND cp.status IN ('active', 'depleted')
-    ORDER BY cp.expires_at IS NULL, cp.expires_at ASC, cp.purchased_at ASC
+    WHERE cp.user_id = ? AND pd.training_category = ? AND cp.status IN ('active', 'depleted', 'expired')
+    ORDER BY COALESCE(cp.grace_until, cp.expires_at) IS NULL, COALESCE(cp.grace_until, cp.expires_at) ASC, cp.purchased_at ASC
     LIMIT 1
   `).get(userId, trainingCategory) as ClientPackageRow | undefined;
   return row ? rowToClientPackage(row) : undefined;
@@ -248,11 +371,11 @@ export function getPackageForCreditBack(userId: string, trainingCategory: string
 export function deductSession(packageId: string): ClientPackage | undefined {
   const db = getDb();
   const pkg = getClientPackageById(packageId);
-  if (!pkg || pkg.remainingSessions <= 0) return undefined;
+  if (!pkg || pkg.remainingSessions <= 0 || !pkg.isBookable) return undefined;
 
   const newRemaining = pkg.remainingSessions - 1;
-  const newStatus = newRemaining === 0 ? 'depleted' : pkg.status;
-  db.prepare('UPDATE client_packages SET remaining_sessions = ?, status = ? WHERE id = ?').run(newRemaining, newStatus, packageId);
+  db.prepare('UPDATE client_packages SET remaining_sessions = ? WHERE id = ?').run(newRemaining, packageId);
+  syncClientPackageStatuses();
 
   return getClientPackageById(packageId)!;
 }
@@ -262,32 +385,27 @@ export function creditSession(packageId: string): ClientPackage | undefined {
   const pkg = getClientPackageById(packageId);
   if (!pkg) return undefined;
 
-  const newRemaining = pkg.remainingSessions + 1;
-  const newStatus = pkg.status === 'depleted' && newRemaining > 0 ? 'active' : pkg.status;
-  db.prepare('UPDATE client_packages SET remaining_sessions = ?, status = ? WHERE id = ?').run(newRemaining, newStatus, packageId);
+  const newRemaining = Math.min(pkg.remainingSessions + 1, pkg.totalSessions);
+  db.prepare('UPDATE client_packages SET remaining_sessions = ? WHERE id = ?').run(newRemaining, packageId);
+  syncClientPackageStatuses();
 
   return getClientPackageById(packageId)!;
 }
 
-export function getPackagesOverview(): { expiringSoon: ClientPackage[]; depleted: ClientPackage[] } {
+export function getPackagesOverview(): { expiringSoon: ClientPackage[]; depleted: ClientPackage[]; expired: ClientPackage[] } {
   const db = getDb();
-  const thirtyDaysFromNow = new Date();
-  thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-  const cutoff = thirtyDaysFromNow.toISOString();
+  syncClientPackageStatuses();
 
-  const expiringSoon = (db.prepare(`
+  const allPackages = (db.prepare(`
     ${CLIENT_PACKAGE_JOIN_SQL}
-    WHERE cp.status = 'active' AND cp.expires_at IS NOT NULL AND cp.expires_at <= ?
-    ORDER BY cp.expires_at ASC
-  `).all(cutoff) as ClientPackageRow[]).map(rowToClientPackage);
-
-  const depleted = (db.prepare(`
-    ${CLIENT_PACKAGE_JOIN_SQL}
-    WHERE cp.status = 'depleted'
     ORDER BY cp.purchased_at DESC
   `).all() as ClientPackageRow[]).map(rowToClientPackage);
 
-  return { expiringSoon, depleted };
+  return {
+    expiringSoon: allPackages.filter((pkg) => pkg.status === 'active' && pkg.isExpiringSoon),
+    depleted: allPackages.filter((pkg) => pkg.status === 'depleted'),
+    expired: allPackages.filter((pkg) => pkg.status === 'expired'),
+  };
 }
 
 // ── Cleanup (for tests) ──

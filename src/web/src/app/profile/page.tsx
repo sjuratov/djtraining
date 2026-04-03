@@ -98,7 +98,15 @@ export default function ProfilePage() {
         if (profileData) {
           setProfile({
             ...emptyProfile,
-            ...profileData,
+            firstName: profileData.firstName ?? '',
+            lastName: profileData.lastName ?? '',
+            phone: profileData.phone ?? '',
+            birthDate: profileData.birthDate ?? '',
+            gender: profileData.gender ?? '',
+            trainingGoal: profileData.trainingGoal ?? '',
+            experienceLevel: profileData.experienceLevel ?? '',
+            healthNotes: profileData.healthNotes ?? '',
+            trainingType: profileData.trainingType ?? '',
             sessionsPerWeek: profileData.sessionsPerWeek ?? '',
             preferredTimes: profileData.preferredTimes ?? [],
           });

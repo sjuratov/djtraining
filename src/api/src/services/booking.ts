@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import { getDb } from '../db/database.js';
 import { getSlotById, updateSlot } from './schedule.js';
 import type { TimeSlot } from './schedule.js';
-import { getActivePackageForBooking, deductSession, getPackageForCreditBack, creditSession } from './packages.js';
+import { getActivePackageForBooking, deductSession, getPackageForCreditBack, creditSession, getClientPackageById } from './packages.js';
 
 // ── Types ──
 
@@ -10,6 +10,7 @@ export interface Booking {
   id: string;
   userId: string;
   timeSlotId: string;
+  clientPackageId: string | null;
   status: 'confirmed' | 'cancelled' | 'completed' | 'no-show';
   bookedBy: string;
   cancelledAt: string | null;
@@ -34,6 +35,7 @@ interface BookingRow {
   id: string;
   user_id: string;
   time_slot_id: string;
+  client_package_id: string | null;
   status: string;
   booked_by: string;
   cancelled_at: string | null;
@@ -53,6 +55,7 @@ function rowToBooking(row: BookingRow): Booking {
     id: row.id,
     userId: row.user_id,
     timeSlotId: row.time_slot_id,
+    clientPackageId: row.client_package_id,
     status: row.status as Booking['status'],
     bookedBy: row.booked_by,
     cancelledAt: row.cancelled_at,
@@ -98,8 +101,20 @@ function updateSlotCapacityStatus(slot: TimeSlot): void {
 // ── Create booking ──
 
 export interface CreateBookingError {
-  code: 'SLOT_NOT_FOUND' | 'SLOT_CANCELLED' | 'SLOT_FULL' | 'DOUBLE_BOOKING' | 'PAST_SLOT';
+  code: 'SLOT_NOT_FOUND' | 'SLOT_CANCELLED' | 'SLOT_FULL' | 'DOUBLE_BOOKING' | 'PAST_SLOT' | 'NO_ELIGIBLE_PACKAGE';
   message: string;
+}
+
+function packageErrorMessage(trainingCategory: string | undefined): string {
+  switch (trainingCategory) {
+    case 'gruppe':
+      return 'Kein aktives Abo für Gruppentraining verfügbar';
+    case 'ernaehrung':
+      return 'Kein aktives Abo für Ernährungscoaching verfügbar';
+    case 'personal':
+    default:
+      return 'Kein aktives Abo für diese Trainingsart verfügbar';
+  }
 }
 
 export function createBooking(params: {
@@ -134,26 +149,30 @@ export function createBooking(params: {
     return { code: 'SLOT_FULL', message: 'Dieses Zeitfenster ist ausgebucht' };
   }
 
+  const activePackage = getActivePackageForBooking(params.userId, slot.trainingTypeCategory ?? '');
+  if (!activePackage) {
+    return {
+      code: 'NO_ELIGIBLE_PACKAGE',
+      message: packageErrorMessage(slot.trainingTypeCategory),
+    };
+  }
+
   // Use transaction for atomicity
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
 
   const insertBooking = db.transaction(() => {
     db.prepare(`
-      INSERT INTO bookings (id, user_id, time_slot_id, status, booked_by, notes, created_at, updated_at)
-      VALUES (?, ?, ?, 'confirmed', ?, ?, ?, ?)
-    `).run(id, params.userId, params.timeSlotId, params.bookedBy, params.notes ?? null, now, now);
+      INSERT INTO bookings (id, user_id, time_slot_id, client_package_id, status, booked_by, notes, created_at, updated_at)
+      VALUES (?, ?, ?, ?, 'confirmed', ?, ?, ?, ?)
+    `).run(id, params.userId, params.timeSlotId, activePackage.id, params.bookedBy, params.notes ?? null, now, now);
 
     // Update slot status if now full
     if (activeCount + 1 >= slot.maxCapacity) {
       updateSlot(slot.id, { status: 'full' });
     }
 
-    // Deduct session from active package if available
-    const activePackage = getActivePackageForBooking(params.userId, slot.trainingTypeCategory ?? '');
-    if (activePackage) {
-      deductSession(activePackage.id);
-    }
+    deductSession(activePackage.id);
   });
 
   insertBooking();
@@ -282,7 +301,9 @@ export function cancelBooking(bookingId: string, params: {
       updateSlotCapacityStatus(slot);
 
       // Credit session back to matching package
-      const pkg = getPackageForCreditBack(booking.userId, slot.trainingTypeCategory ?? '');
+      const pkg = booking.clientPackageId
+        ? getClientPackageById(booking.clientPackageId) ?? getPackageForCreditBack(booking.userId, slot.trainingTypeCategory ?? '')
+        : getPackageForCreditBack(booking.userId, slot.trainingTypeCategory ?? '');
       if (pkg) {
         creditSession(pkg.id);
       }

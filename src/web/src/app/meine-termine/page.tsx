@@ -25,7 +25,27 @@ interface ClientPackage {
   totalSessions: number;
   remainingSessions: number;
   expiresAt: string | null;
+  effectiveExpiresAt: string | null;
+  graceUntil: string | null;
+  isExpiringSoon: boolean;
+  daysUntilExpiry: number | null;
   status: 'active' | 'expired' | 'depleted';
+}
+
+function formatPackageNotice(pkg: Pick<ClientPackage, 'isExpiringSoon' | 'daysUntilExpiry'>): string | null {
+  if (!pkg.isExpiringSoon || pkg.daysUntilExpiry === null) {
+    return null;
+  }
+
+  if (pkg.daysUntilExpiry <= 0) {
+    return 'Dein Paket läuft heute ab.';
+  }
+
+  if (pkg.daysUntilExpiry === 1) {
+    return 'Dein Paket läuft morgen ab.';
+  }
+
+  return `Dein Paket läuft in ${pkg.daysUntilExpiry} Tagen ab.`;
 }
 
 function isWithin24Hours(slotDate: string, slotStartTime: string): boolean {
@@ -199,13 +219,28 @@ function MeineTermineContent() {
                 </p>
                 {pkg.expiresAt && (
                   <p className="text-xs text-gray-400">
-                    Gültig bis{' '}
+                    Ursprünglich gültig bis{' '}
                     {new Date(pkg.expiresAt).toLocaleDateString('de-CH', {
                       year: 'numeric',
                       month: 'long',
                       day: 'numeric',
                     })}
                   </p>
+                )}
+                {pkg.graceUntil && (
+                  <p className="text-xs font-medium text-blue-700">
+                    Verlängert / Kulanz bis{' '}
+                    {new Date(pkg.graceUntil).toLocaleDateString('de-CH', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </p>
+                )}
+                {formatPackageNotice(pkg) && (
+                  <div className="mt-3 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                    {formatPackageNotice(pkg)}
+                  </div>
                 )}
               </div>
             ))}

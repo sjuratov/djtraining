@@ -52,6 +52,71 @@ test.describe('Profile Page', () => {
 
     await expect(page).toHaveURL(/\/login/);
   });
+
+  test('should render empty profile selects without console errors', async ({ page }) => {
+    // Validates: specs/frd-auth.md, Profile Management AC
+    const consoleErrors: string[] = [];
+
+    page.on('console', (message) => {
+      if (message.type() === 'error') {
+        consoleErrors.push(message.text());
+      }
+    });
+
+    await page.route('**/api/auth/me', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          email: 'profil@test.de',
+          displayName: 'Test Profil',
+          role: 'user',
+          authProvider: 'local',
+          createdAt: '2026-01-01T00:00:00.000Z',
+        }),
+      });
+    });
+
+    await page.route('**/api/profile', async (route) => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            firstName: '',
+            lastName: '',
+            phone: '',
+            birthDate: '',
+            gender: null,
+            trainingGoal: null,
+            experienceLevel: null,
+            healthNotes: '',
+            trainingType: null,
+            sessionsPerWeek: '',
+            preferredTimes: [],
+          }),
+        });
+        return;
+      }
+
+      await route.continue();
+    });
+
+    await page.goto('/profile');
+
+    await expect(page.getByTestId('field-gender')).toHaveValue('');
+    await page.getByTestId('tab-fitness').click();
+    await expect(page.getByTestId('field-trainingGoal')).toHaveValue('');
+    await expect(page.getByTestId('field-experienceLevel')).toHaveValue('');
+    await page.getByTestId('tab-membership').click();
+    await expect(page.getByTestId('field-trainingType')).toHaveValue('');
+
+    expect(
+      consoleErrors.some((message) =>
+        message.includes('`value` prop on `%s` should not be null'),
+      ),
+    ).toBe(false);
+  });
 });
 
 test.describe('Profile Form', () => {

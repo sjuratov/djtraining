@@ -3,6 +3,7 @@ import request from 'supertest';
 import { createApp } from '../../src/app.js';
 import { createUser, activateUser, setUserRole } from '../../src/models/user-store.js';
 import { createTrainingType, createTemplate, generateSlots } from '../../src/services/schedule.js';
+import { assignPackage } from '../../src/services/packages.js';
 import bcrypt from 'bcryptjs';
 
 const app = createApp();
@@ -53,6 +54,16 @@ function createFutureSlot(daysAhead = 7, capacity = 1, category: 'personal' | 'g
   return { trainingType: tt, slot: slots[0], dateStr };
 }
 
+function assignDefaultPackage(userId: string, category: 'personal' | 'gruppe' | 'ernaehrung' = 'personal') {
+  const packageDefIdByCategory: Record<'personal' | 'gruppe' | 'ernaehrung', string> = {
+    personal: 'pkg-personal-20',
+    gruppe: 'pkg-gruppe-20',
+    ernaehrung: 'pkg-ernaehrung-5',
+  };
+
+  assignPackage({ userId, packageDefId: packageDefIdByCategory[category] });
+}
+
 describe('Client Booking API', () => {
   let clientCookie: string[];
   let clientUserId: string;
@@ -61,6 +72,8 @@ describe('Client Booking API', () => {
     const { user, cookie } = await loginUser('client@example.com');
     clientCookie = cookie;
     clientUserId = user.id;
+    assignDefaultPackage(clientUserId, 'personal');
+    assignDefaultPackage(clientUserId, 'gruppe');
   });
 
   it('should create a booking for an available slot', async () => {
@@ -124,7 +137,8 @@ describe('Client Booking API', () => {
       .send({ timeSlotId: slot.id });
 
     // Second client tries to book
-    const { cookie: otherCookie } = await loginUser('other@example.com');
+    const { user: otherUser, cookie: otherCookie } = await loginUser('other@example.com');
+    assignDefaultPackage(otherUser.id, 'personal');
     const res = await request(app)
       .post('/api/bookings')
       .set('Cookie', otherCookie)
@@ -135,14 +149,15 @@ describe('Client Booking API', () => {
   });
 
   it('should allow multiple bookings for group slots', async () => {
-    const { slot } = createFutureSlot(7, 5);
+    const { slot } = createFutureSlot(7, 5, 'gruppe');
 
     await request(app)
       .post('/api/bookings')
       .set('Cookie', clientCookie)
       .send({ timeSlotId: slot.id });
 
-    const { cookie: otherCookie } = await loginUser('other@example.com');
+    const { user: otherUser, cookie: otherCookie } = await loginUser('other@example.com');
+    assignDefaultPackage(otherUser.id, 'gruppe');
     const res = await request(app)
       .post('/api/bookings')
       .set('Cookie', otherCookie)
@@ -223,7 +238,8 @@ describe('Client Booking API', () => {
     const { slot } = createFutureSlot(7, 5);
 
     // Another user books
-    const { cookie: otherCookie } = await loginUser('other@example.com');
+    const { user: otherUser, cookie: otherCookie } = await loginUser('other@example.com');
+    assignDefaultPackage(otherUser.id, 'personal');
     const bookRes = await request(app)
       .post('/api/bookings')
       .set('Cookie', otherCookie)
@@ -248,7 +264,8 @@ describe('Client Booking API', () => {
       .send({ timeSlotId: slot.id });
 
     // Second client fails
-    const { cookie: otherCookie } = await loginUser('other@example.com');
+    const { user: otherUser, cookie: otherCookie } = await loginUser('other@example.com');
+    assignDefaultPackage(otherUser.id, 'personal');
     let res = await request(app)
       .post('/api/bookings')
       .set('Cookie', otherCookie)
@@ -306,6 +323,8 @@ describe('Admin Booking API', () => {
     const { user, cookie: cCookie } = await loginUser('client@example.com');
     clientCookie = cCookie;
     clientUserId = user.id;
+    assignDefaultPackage(clientUserId, 'personal');
+    assignDefaultPackage(clientUserId, 'gruppe');
   });
 
   it('should list all bookings', async () => {
@@ -429,8 +448,10 @@ describe('Group Training Enrollment', () => {
   let clientCookie: string[];
 
   beforeEach(async () => {
-    const { cookie } = await loginUser('client@example.com');
+    const { user, cookie } = await loginUser('client@example.com');
     clientCookie = cookie;
+    assignDefaultPackage(user.id, 'personal');
+    assignDefaultPackage(user.id, 'gruppe');
   });
 
   it('should show available spots on public slot API', async () => {
@@ -466,7 +487,8 @@ describe('Group Training Enrollment', () => {
 
     // Book 3 clients to fill capacity
     for (let i = 0; i < 3; i++) {
-      const { cookie } = await loginUser(`user${i}@example.com`);
+      const { user, cookie } = await loginUser(`user${i}@example.com`);
+      assignDefaultPackage(user.id, 'gruppe');
       await request(app)
         .post('/api/bookings')
         .set('Cookie', cookie)
@@ -486,13 +508,15 @@ describe('Group Training Enrollment', () => {
     const { slot, dateStr } = createFutureSlot(7, 2, 'gruppe');
 
     // Book 2 clients to fill
-    const { cookie: cookie1 } = await loginUser('user1@example.com');
+    const { user: user1, cookie: cookie1 } = await loginUser('user1@example.com');
+    assignDefaultPackage(user1.id, 'gruppe');
     const book1 = await request(app)
       .post('/api/bookings')
       .set('Cookie', cookie1)
       .send({ timeSlotId: slot.id });
 
-    const { cookie: cookie2 } = await loginUser('user2@example.com');
+    const { user: user2, cookie: cookie2 } = await loginUser('user2@example.com');
+    assignDefaultPackage(user2.id, 'gruppe');
     await request(app)
       .post('/api/bookings')
       .set('Cookie', cookie2)

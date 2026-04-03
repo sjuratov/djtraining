@@ -102,8 +102,8 @@ export function createApp(): express.Express {
   // Test-only: reset endpoint for e2e test isolation
   if (shouldEnableTestRoutes()) {
     app.post('/api/test/reset', (_req, res) => {
-      clearPackages();
       clearBookings();
+      clearPackages();
       clearScheduleData();
       clearUsers();
       res.json({ message: 'Store cleared' });

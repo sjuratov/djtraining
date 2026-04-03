@@ -6,9 +6,11 @@ import {
   createPackageDefinition,
   updatePackageDefinition,
   getClientPackages,
+  getClientPackageById,
   assignPackage,
   adjustRemainingSessions,
   getPackagesOverview,
+  setPackageGrace,
 } from '../services/packages.js';
 
 function isAdjustError(result: unknown): result is { error: string } {
@@ -85,6 +87,33 @@ export function mapPackageEndpoints(app: Express): void {
       res.status(400).json({ error: result.error });
       return;
     }
+    res.json(result);
+  });
+
+  app.put('/api/admin/packages/:id/grace', authMiddleware, requireRole('admin'), (req: Request<{id: string}>, res: Response) => {
+    const existing = getClientPackageById(req.params.id);
+    if (!existing) {
+      res.status(404).json({ error: 'Paket nicht gefunden' });
+      return;
+    }
+
+    const { graceUntil, reason } = req.body;
+    if (typeof graceUntil !== 'string' || typeof reason !== 'string') {
+      res.status(400).json({ error: 'Neues Enddatum und Grund sind erforderlich' });
+      return;
+    }
+
+    const result = setPackageGrace(req.params.id, {
+      graceUntil,
+      reason,
+      adminId: req.user!.sub,
+    });
+
+    if (isAdjustError(result)) {
+      res.status(400).json({ error: result.error });
+      return;
+    }
+
     res.json(result);
   });
 

@@ -854,3 +854,154 @@ ext-pre-001 (Database)
 - **Dependencies:** ext-006
 - **Rollback Plan:** Remove settings page; admin can still use calendar ad-hoc slots
 - **Risk:** Low — frontend-only, all APIs tested and working
+
+---
+
+## ext-008: Client Booking Month Calendar
+
+- **Type:** extension
+- **FRD:** frd-client-booking-calendar.md
+- **Scope:** Replace the rolling 4-week date strip on `/buchen` with a standard month calendar view that opens on the current month and supports previous/next month navigation. Keep existing training type selection, slot selection, and booking confirmation flow intact.
+- **Acceptance Criteria:**
+  - [ ] `/buchen` Step 2 shows a full current-month calendar view
+  - [ ] User can navigate to previous and next months
+  - [ ] Selecting a day loads available slots for that date
+  - [ ] Dates without slots remain visible in the calendar
+  - [ ] Training type selection from Step 1 remains intact while navigating months
+  - [ ] Booking confirmation flow remains unchanged after slot selection
+  - [ ] Existing redirect to `/meine-termine?booked=true` remains unchanged
+- **Test Strategy:**
+  - Web build regression for the updated `/buchen` page
+  - E2e: user selects training type → navigates month calendar → chooses day → books slot
+  - Regression: all 152 API tests continue to pass unchanged
+- **Gherkin Deltas:**
+  - New: `Scenario: Client navigates booking calendar by month` — user can move backward and forward before choosing a date
+  - Modified: `Scenario: Client books an available session` — date selection uses a month calendar instead of a rolling date strip
+  - Regression: existing booking confirmation and dashboard scenarios must still pass unchanged
+- **Integration Points:**
+  - Modified page: `/buchen`
+  - Reuses existing API: `GET /api/schedule/slots`
+  - Depends on existing admin-generated slots from schedule setup and calendar management
+- **Dependencies:** ext-007
+- **Rollback Plan:** Revert `/buchen` Step 2 to the current rolling 4-week date strip
+- **Risk:** Low — frontend-only, no API or schema changes
+
+---
+
+## ext-pre-002: Admin Package Assignment UI
+
+- **Type:** extension-prerequisite
+- **FRD:** frd-package-governed-booking.md
+- **Scope:** Add admin UI to assign packages directly from the admin user/profile workflow and display current/past packages per client. Reuse existing package APIs from ext-004; no booking behaviour changes yet.
+- **Acceptance Criteria:**
+  - [ ] Admin can view a client's active and past packages from admin user/profile flow
+  - [ ] Admin can assign an existing package definition to a client with optional notes
+  - [ ] Admin can see remaining sessions and expiry per package
+  - [ ] Existing admin user management continues to work unchanged
+- **Test Strategy:**
+  - API regression: package assignment and lookup endpoints remain green
+  - Web build: admin user/profile flow builds with package assignment UI
+  - E2e: admin opens client profile → assigns package → sees it listed
+- **Gherkin Deltas:**
+  - New: `Scenario: Admin assigns a package to a client from the admin profile`
+  - Regression: existing admin user-management scenarios remain unchanged
+- **Integration Points:**
+  - Modified page: `/admin`
+  - Reuses existing API: `/api/admin/users/:userId/packages`, `/api/admin/package-definitions`
+  - Prepares booking enforcement without changing current booking behaviour yet
+- **Dependencies:** ext-007
+- **Rollback Plan:** Remove package-assignment UI; package APIs remain available
+- **Risk:** Low — frontend-only prerequisite using existing tested endpoints
+
+---
+
+## ext-009: Package-Gated Booking Enforcement
+
+- **Type:** extension
+- **FRD:** frd-package-governed-booking.md
+- **Scope:** Change booking rules so clients need an eligible active package with remaining sessions for the selected training category. Booking decrements the chosen package; cancellation credits back to the same package. `/buchen` shows remaining entitlement for enabled categories and blocks progression for categories without entitlement.
+- **Acceptance Criteria:**
+  - [ ] Client cannot book without an eligible package
+  - [ ] Booking consumes the earliest-expiring eligible package in the selected category
+  - [ ] Cancelling a booking restores one session to the originally used package
+  - [ ] `/buchen` shows remaining entitlement for bookable categories
+  - [ ] API returns a clear business error when entitlement is missing
+  - [ ] If the client cannot book at all, `/buchen` explains what they need to do next instead of failing silently
+- **Test Strategy:**
+  - Unit/API: booking create/cancel with required package enforcement and credit-back
+  - Web build: `/buchen` entitlement states render correctly
+  - E2e: admin assigns package → client books session → balance decrements → client cancels → balance restores
+  - Regression: existing schedule, package, and booking tests still pass
+- **Gherkin Deltas:**
+  - New: `Scenario: Client books only when entitled by an active package`
+  - Modified: `Scenario: Client books an available session` — booking now requires eligible package
+  - Modified: `Scenario: Client cancels a booking` — session is credited back to the package used
+  - Regression: existing admin booking and package definition scenarios remain unchanged
+- **Integration Points:**
+  - Modified API: booking creation/cancellation and package lookup logic
+  - Modified page: `/buchen`
+  - Depends on package assignment UI from `ext-pre-002`
+- **Dependencies:** ext-pre-002
+- **Rollback Plan:** Restore current booking rule that allows booking without package
+- **Risk:** Medium — changes existing booking behaviour and business rules
+
+---
+
+## ext-010: Booking Upsell and Eligibility Catalog
+
+- **Type:** extension
+- **FRD:** frd-package-governed-booking.md
+- **Scope:** Refine `/buchen` so all training offers remain visible, but only purchased categories are selectable. Non-purchased categories are greyed out and link to their respective offer pages for upsell and information.
+- **Acceptance Criteria:**
+  - [ ] `/buchen` shows all training categories regardless of entitlement
+  - [ ] Non-purchased categories are visibly disabled
+  - [ ] Disabled categories link to `/personal-training`, `/gruppentraining`, or `/ernaehrungscoaching`
+  - [ ] Purchased categories show entitlement such as `5/10 Trainings übrig`
+  - [ ] Page copy clearly explains why some categories cannot be booked yet
+  - [ ] The disabled state tells the client that the offer has not been purchased yet and points to the relevant `Angebot` page for next steps
+- **Test Strategy:**
+  - Web build regression for `/buchen`
+  - E2e: client with group package sees personal/nutrition disabled and linked, group enabled with balance
+  - Regression: package-gated booking flow from `ext-009` remains intact
+- **Gherkin Deltas:**
+  - New: `Scenario: Client sees disabled booking options for categories not purchased`
+  - Modified: `Scenario: Client selects a training type to book` — only entitled categories are actionable
+  - Regression: booking confirmation flow remains unchanged once a slot is selected
+- **Integration Points:**
+  - Modified page: `/buchen`
+  - Links to existing offer pages
+  - Uses entitlement state from `ext-009`
+- **Dependencies:** ext-009
+- **Rollback Plan:** Revert `/buchen` to show only currently selectable categories
+- **Risk:** Low — frontend-only refinement after entitlement enforcement
+
+---
+
+## ext-011: Package Expiry Reminders and Grace Handling
+
+- **Type:** extension
+- **FRD:** frd-package-reminders.md
+- **Scope:** Add 14-day package expiry warnings for clients and admins, plus an explicit admin grace/extension workflow that preserves original expiry and records the reason for any exception.
+- **Acceptance Criteria:**
+  - [ ] Clients and admins see warning state starting 14 days before expiry
+  - [ ] Expired packages are not bookable unless grace is granted
+  - [ ] Admin can grant grace/extension with required reason and end date
+  - [ ] Original expiry and grace end date remain visible
+  - [ ] Booking eligibility respects the grace end date when present
+- **Test Strategy:**
+  - Unit/API: expiring-soon detection, grace validation, booking eligibility with grace
+  - Web build: warning banners and admin grace controls render correctly
+  - E2e: package approaches expiry → warning shown → admin grants grace → client can still book
+  - Regression: package-gated booking from `ext-009` remains intact
+- **Gherkin Deltas:**
+  - New: `Scenario: Client sees package expiry warning 14 days before expiry`
+  - New: `Scenario: Admin grants grace for an expiring package`
+  - Modified: `Scenario: Client books only when entitled by an active package` — grace counts as valid entitlement
+  - Regression: non-expiring package booking scenarios must still pass unchanged
+- **Integration Points:**
+  - Modified data model: `client_packages` reminder/grace metadata
+  - Modified admin package views and client package displays
+  - Modified booking eligibility logic
+- **Dependencies:** ext-009
+- **Rollback Plan:** Remove grace workflow and revert to expiry-only package handling
+- **Risk:** Medium — adds business-state transitions that affect booking eligibility

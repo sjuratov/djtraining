@@ -27,8 +27,8 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-  clearPackages();
   clearBookings();
+  clearPackages();
   clearScheduleData();
   clearUsers();
 });

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../../src/app.js';
+import { assignPackage } from '../../src/services/packages.js';
 
 const app = createApp();
 
@@ -30,6 +31,7 @@ async function createUserAndLogin(email = 'client@example.com', displayName = 'C
   });
   const cookie = loginRes.headers['set-cookie']?.[0] ?? '';
   const meRes = await request(app).get('/api/auth/me').set('Cookie', cookie);
+  assignPackage({ userId: meRes.body.sub, packageDefId: 'pkg-personal-20' });
   return {
     cookie,
     userId: meRes.body.sub,

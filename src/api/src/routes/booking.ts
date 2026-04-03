@@ -23,6 +23,7 @@ const errorStatusMap: Record<string, number> = {
   SLOT_FULL: 409,
   DOUBLE_BOOKING: 409,
   PAST_SLOT: 400,
+  NO_ELIGIBLE_PACKAGE: 409,
   NOT_FOUND: 404,
   ALREADY_CANCELLED: 400,
   NOT_AUTHORIZED: 403,
