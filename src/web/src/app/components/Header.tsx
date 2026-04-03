@@ -144,6 +144,13 @@ export default function Header() {
               {userMenuOpen && (
                 <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-md border border-gray-200 bg-white py-1 shadow-lg">
                   <Link
+                    href="/meine-termine"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    onClick={() => setUserMenuOpen(false)}
+                  >
+                    Meine Termine
+                  </Link>
+                  <Link
                     href="/profile"
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                     onClick={() => setUserMenuOpen(false)}
@@ -232,6 +239,13 @@ export default function Header() {
           <div className="mt-2 border-t border-gray-200 pt-2">
             {user ? (
               <>
+                <Link
+                  href="/meine-termine"
+                  className="block rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Meine Termine
+                </Link>
                 <Link
                   href="/profile"
                   className="block rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
