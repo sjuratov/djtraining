@@ -43,3 +43,27 @@
 [2026-04-03T10:46:00Z] step=extension-planning action=frds-updated reason="human-feedback: generic admins, Azure deployment path, default package seed data, admin calendar CRUD" frds=frd-database.md,frd-scheduling.md,frd-booking.md,frd-packages.md
 [2026-04-03T10:46:00Z] step=extension-planning action=increment-plan-updated result=done increments=ext-006-calendar-crud-strengthened
 [2026-04-03T11:05:00Z] step=ext-pre-001 action=implementation result=done desc="SQLite migration complete — better-sqlite3, migration system, user-store rewrite" api=69/69 e2e=111/111
+[2026-04-03T14:35:52Z] step=extension-planning action=frds-generated count=1 result=done frds=frd-client-booking-calendar.md
+[2026-04-03T14:35:52Z] step=extension-planning action=increments-generated count=1 result=done increments=ext-008
+[2026-04-03T15:11:50Z] step=extension-planning action=frds-generated count=2 result=done frds=frd-package-governed-booking.md,frd-package-reminders.md
+[2026-04-03T15:11:50Z] step=extension-planning action=increments-generated count=4 result=done increments=ext-pre-002,ext-009,ext-010,ext-011
+[2026-04-03T15:24:06Z] increment=ext-pre-002 slice=web action=slice-implemented result=build:green admin-package-assignment:enabled
+[2026-04-03T15:34:01Z] increment=ext-009 slice=api action=slice-implemented result=pass:152/fail:0 package-gate:enabled booking-package-reference:stored
+[2026-04-03T15:34:01Z] increment=ext-009 slice=web action=slice-implemented result=build:green buchen-entitlements:enabled
+[2026-04-03T15:38:22Z] increment=ext-010 slice=web action=slice-implemented result=build:green buchen-offer-links:enabled disabled-upsell-cards:enabled
+[2026-04-03T15:49:46Z] increment=ext-011 slice=api action=slice-implemented result=pass:156/fail:0 expiry-reminders:derived grace-end-date:enabled booking-eligibility:effective-expiry
+[2026-04-03T15:49:46Z] increment=ext-011 slice=web action=slice-implemented result=build:green admin-reminders:enabled client-warnings:enabled grace-workflow:enabled
+[2026-04-03T16:13:16Z] step=bugfix action=test-created bug=bugfix-profile-null-select frd=frd-auth.md test=e2e/profile.spec.ts result=failing
+[2026-04-03T16:13:16Z] step=bugfix action=test-approved bug=bugfix-profile-null-select approver=human result=approved
+[2026-04-03T16:13:16Z] step=bugfix action=fix-applied bug=bugfix-profile-null-select files=src/web/src/app/profile/page.tsx,e2e/profile.spec.ts result=done
+[2026-04-03T16:13:16Z] step=bugfix action=regression-passed bug=bugfix-profile-null-select result=all-green
+[2026-04-03T16:43:53Z] step=bugfix action=test-created bug=bugfix-package-balance-cap frd=frd-packages.md test=src/api/tests/unit/packages.test.ts result=failing
+[2026-04-03T16:43:53Z] step=bugfix action=test-approved bug=bugfix-package-balance-cap approver=human result=approved
+[2026-04-03T16:43:53Z] step=bugfix action=fix-applied bug=bugfix-package-balance-cap files=src/api/src/services/packages.ts,src/api/tests/unit/packages.test.ts result=done
+[2026-04-03T16:43:53Z] step=bugfix action=regression-passed bug=bugfix-package-balance-cap result=targeted-green full-suite=blocked-by-existing-api-flake
+[2026-04-03T16:55:57Z] step=bugfix action=test-created bug=bugfix-auth-env-loading frd=frd-auth.md test=src/api/tests/unit/env-loading.test.ts result=failing
+[2026-04-03T16:55:57Z] step=bugfix action=test-approved bug=bugfix-auth-env-loading approver=human result=approved
+[2026-04-03T16:55:57Z] step=bugfix action=fix-applied bug=bugfix-auth-env-loading files=src/api/src/config/env.ts,src/api/src/index.ts,src/api/tests/unit/env-loading.test.ts result=done
+[2026-04-03T16:55:57Z] step=bugfix action=regression-passed bug=bugfix-auth-env-loading result=all-green api=161/161 build=green google-route=redirect
+[2026-04-03T17:07:18Z] step=local-db-reset action=seeded result=done db=src/api/data/djtraining.db users=0 packages=0 package-definitions=15 training-types=3 templates=44 slots=184
+[2026-04-03T17:07:18Z] step=skill-creator action=skill-created result=done skill=reset-database package=/Users/sasajuratovic/.copilot/session-state/0a9507ec-8b3f-4f2b-9c8b-5ad739d0788a/files/reset-database.skill

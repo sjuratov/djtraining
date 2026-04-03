@@ -158,9 +158,44 @@
       "frd": "frd-booking.md",
       "name": "Admin Calendar & Management",
       "status": "planned"
+    },
+    {
+      "id": "ext-008",
+      "type": "extension",
+      "frd": "frd-client-booking-calendar.md",
+      "name": "Client Booking Month Calendar",
+      "status": "planned"
+    },
+    {
+      "id": "ext-pre-002",
+      "type": "extension",
+      "frd": "frd-package-governed-booking.md",
+      "name": "Admin Package Assignment UI",
+      "status": "complete"
+    },
+    {
+      "id": "ext-009",
+      "type": "extension",
+      "frd": "frd-package-governed-booking.md",
+      "name": "Package-Gated Booking Enforcement",
+      "status": "complete"
+    },
+    {
+      "id": "ext-010",
+      "type": "extension",
+      "frd": "frd-package-governed-booking.md",
+      "name": "Booking Upsell and Eligibility Catalog",
+      "status": "complete"
+    },
+    {
+      "id": "ext-011",
+      "type": "extension",
+      "frd": "frd-package-reminders.md",
+      "name": "Package Expiry Reminders and Grace Handling",
+      "status": "complete"
     }
   ],
-  "currentIncrement": "ext-005",
+  "currentIncrement": "ext-011",
   "increments": {
     "inc-1": {
       "status": "complete",
@@ -196,6 +231,92 @@
       "frds": [
         "FRD-010"
       ]
+    },
+    "ext-pre-002": {
+      "status": "complete",
+      "frds": [
+        "frd-package-governed-booking.md"
+      ],
+      "modifiedFiles": [
+        "src/web/src/app/admin/page.tsx"
+      ]
+    },
+    "ext-009": {
+      "status": "complete",
+      "frds": [
+        "frd-package-governed-booking.md"
+      ],
+      "modifiedFiles": [
+        "src/api/src/app.ts",
+        "src/api/src/db/migrations/005-booking-package-reference.sql",
+        "src/api/src/routes/booking.ts",
+        "src/api/src/services/booking.ts",
+        "src/api/src/services/packages.ts",
+        "src/api/tests/setup.ts",
+        "src/api/tests/unit/booking.test.ts",
+        "src/api/tests/unit/calendar.test.ts",
+        "src/api/tests/unit/packages.test.ts",
+        "src/api/vitest.config.ts",
+        "src/web/src/app/buchen/page.tsx"
+      ]
+    },
+    "ext-010": {
+      "status": "complete",
+      "frds": [
+        "frd-package-governed-booking.md"
+      ],
+      "modifiedFiles": [
+        "src/web/src/app/buchen/page.tsx"
+      ]
+    },
+    "ext-011": {
+      "status": "complete",
+      "frds": [
+        "frd-package-reminders.md"
+      ],
+      "modifiedFiles": [
+        "src/api/src/db/migrations/006-client-package-grace.sql",
+        "src/api/src/routes/packages.ts",
+        "src/api/src/services/packages.ts",
+        "src/api/tests/unit/packages.test.ts",
+        "src/web/src/app/admin/page.tsx",
+        "src/web/src/app/buchen/page.tsx",
+        "src/web/src/app/meine-termine/page.tsx"
+      ]
+    },
+    "bugfix-profile-null-select": {
+      "type": "bugfix",
+      "frd": "frd-auth.md",
+      "description": "Normalize nullable profile select fields before rendering controlled inputs",
+      "status": "done",
+      "testFile": "e2e/profile.spec.ts",
+      "fixedFiles": [
+        "src/web/src/app/profile/page.tsx"
+      ],
+      "completedAt": "2026-04-03T16:13:16Z"
+    },
+    "bugfix-package-balance-cap": {
+      "type": "bugfix",
+      "frd": "frd-packages.md",
+      "description": "Keep remaining sessions within the purchased total and reject impossible admin corrections",
+      "status": "done",
+      "testFile": "src/api/tests/unit/packages.test.ts",
+      "fixedFiles": [
+        "src/api/src/services/packages.ts"
+      ],
+      "completedAt": "2026-04-03T16:43:53Z"
+    },
+    "bugfix-auth-env-loading": {
+      "type": "bugfix",
+      "frd": "frd-auth.md",
+      "description": "Load the repository root .env for normal API startup so verification email and Google OAuth config are available locally",
+      "status": "done",
+      "testFile": "src/api/tests/unit/env-loading.test.ts",
+      "fixedFiles": [
+        "src/api/src/config/env.ts",
+        "src/api/src/index.ts"
+      ],
+      "completedAt": "2026-04-03T16:55:57Z"
     }
   },
   "humanGates": {
@@ -211,12 +332,12 @@
   },
   "testsStatus": {
     "apiUnit": {
-      "total": 69,
-      "passed": 69,
+      "total": 161,
+      "passed": 161,
       "failed": 0
     },
     "webBuild": {
-      "routes": 18,
+      "routes": 24,
       "status": "green"
     },
     "e2e": {
@@ -231,5 +352,5 @@
     "booking",
     "packages"
   ],
-  "lastUpdated": "2026-04-03T11:05:00Z"
+  "lastUpdated": "2026-04-03T16:55:57Z"
 }
