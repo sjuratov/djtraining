@@ -4,12 +4,14 @@ function uniqueEmail() {
   return `user_${Date.now()}_${Math.random().toString(36).slice(2, 7)}@test.com`;
 }
 
-async function registerUser(page: Page, email: string, password: string, displayName = 'Test User') {
-  await page.request.post('/api/auth/register', { data: { email, password, displayName } });
-}
-
 async function loginUser(page: Page, email: string, password: string) {
   await page.request.post('/api/auth/login', { data: { email, password } });
+}
+
+async function createVerifiedUser(page: Page, email: string, password: string, displayName = 'Test User') {
+  await page.request.post('http://localhost:5001/api/test/create-user', {
+    data: { email, password, displayName },
+  });
 }
 
 test.beforeEach(async ({ context }) => {
@@ -22,7 +24,7 @@ test.describe('Profile Page', () => {
     const email = uniqueEmail();
     const password = 'SecurePass123!';
     const displayName = 'Max Mustermann';
-    await registerUser(page, email, password, displayName);
+    await createVerifiedUser(page, email, password, displayName);
     await loginUser(page, email, password);
 
     await page.goto('/profile');
@@ -42,7 +44,7 @@ test.describe('Profile Page', () => {
   test('should logout from profile page', async ({ page }) => {
     const email = uniqueEmail();
     const password = 'SecurePass123!';
-    await registerUser(page, email, password);
+    await createVerifiedUser(page, email, password);
     await loginUser(page, email, password);
 
     await page.goto('/profile');

@@ -41,7 +41,7 @@ function LoginForm() {
 
       {registered && (
         <p className="rounded bg-green-50 p-3 text-green-800">
-          Registrierung erfolgreich. Bitte melde dich an.
+          Registrierung erfolgreich. Bitte bestätige deine E-Mail-Adresse und melde dich danach an.
         </p>
       )}
 

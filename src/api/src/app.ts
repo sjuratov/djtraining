@@ -12,6 +12,34 @@ import { mapContactEndpoints } from './routes/contact.js';
 import { mapProfileEndpoints } from './routes/profile.js';
 import { clearUsers, createUser, getUserByEmail, deleteUser, activateUser } from './models/user-store.js';
 
+function isLoopbackHostname(hostname: string): boolean {
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+}
+
+function isLocalUrl(url: string | undefined): boolean {
+  if (!url) {
+    return false;
+  }
+
+  try {
+    return isLoopbackHostname(new URL(url).hostname);
+  } catch {
+    return false;
+  }
+}
+
+export function shouldEnableTestRoutes(env: NodeJS.ProcessEnv = process.env): boolean {
+  if (env.NODE_ENV === 'test') {
+    return true;
+  }
+
+  if (env.NODE_ENV !== 'development' || env.ENABLE_TEST_ROUTES !== 'true') {
+    return false;
+  }
+
+  return isLocalUrl(env.APP_URL) && isLocalUrl(env.API_URL);
+}
+
 export function createApp(): express.Express {
   const app = express();
 
@@ -63,7 +91,7 @@ export function createApp(): express.Express {
   mapProfileEndpoints(app);
 
   // Test-only: reset endpoint for e2e test isolation
-  if (process.env.NODE_ENV !== 'production' && process.env.ENABLE_TEST_ROUTES === 'true') {
+  if (shouldEnableTestRoutes()) {
     app.post('/api/test/reset', (_req, res) => {
       clearUsers();
       res.json({ message: 'Store cleared' });
@@ -95,6 +123,11 @@ export function createApp(): express.Express {
       deleteUser(user.id);
       res.json({ message: 'User deleted' });
     });
+  } else if (process.env.ENABLE_TEST_ROUTES === 'true') {
+    logger.warn(
+      { nodeEnv: process.env.NODE_ENV, appUrl: process.env.APP_URL, apiUrl: process.env.API_URL },
+      'ENABLE_TEST_ROUTES was ignored because test routes are restricted to test mode or localhost development.'
+    );
   }
 
   // Centralized error handler — must be last middleware

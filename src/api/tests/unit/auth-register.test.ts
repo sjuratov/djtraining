@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../../src/app.js';
+import { getUserByEmail } from '../../src/models/user-store.js';
 
 describe('POST /api/auth/register', () => {
   const app = createApp();
@@ -14,7 +15,23 @@ describe('POST /api/auth/register', () => {
       .post('/api/auth/register')
       .send({ email: 'test@example.com', password: 'SecurePass123!', displayName: 'Test User' });
     expect(res.status).toBe(201);
-    expect(res.body.message).toBe('Registrierung erfolgreich');
+    expect(res.body.message).toBe('Registrierung erfolgreich. Bitte bestätige deine E-Mail-Adresse.');
+    expect(res.body.verificationRequired).toBe(true);
+  });
+
+  it('should keep newly registered local users pending until verification', async () => {
+    const email = 'pending-register@example.com';
+
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({ email, password: 'SecurePass123!', displayName: 'Pending User' });
+
+    expect(res.status).toBe(201);
+
+    const user = getUserByEmail(email);
+    expect(user).toBeDefined();
+    expect(user?.status).toBe('pending');
+    expect(user?.confirmationToken).toBeTruthy();
   });
 
   it('should return 409 when email already registered', async () => {
@@ -85,6 +102,11 @@ describe('POST /api/auth/register', () => {
       .post('/api/auth/register')
       .send({ email, password, displayName: 'Hash Test' });
     expect(res.status).toBe(201);
+
+    const user = getUserByEmail(email);
+    expect(user?.confirmationToken).toBeTruthy();
+
+    await request(app).get(`/api/auth/verify/${user?.confirmationToken}`);
 
     // Verify hashing by confirming the original password works for login
     const loginRes = await request(app)

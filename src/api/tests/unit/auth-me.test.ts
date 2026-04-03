@@ -1,18 +1,30 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../../src/app.js';
+import { getUserByEmail } from '../../src/models/user-store.js';
 
 describe('GET /api/auth/me', () => {
   const app = createApp();
+
+  async function registerAndVerify(email: string, password: string, displayName: string) {
+    const registerRes = await request(app)
+      .post('/api/auth/register')
+      .send({ email, password, displayName });
+    expect(registerRes.status).toBe(201);
+
+    const token = getUserByEmail(email)?.confirmationToken;
+    expect(token).toBeTruthy();
+
+    const verifyRes = await request(app).get(`/api/auth/verify/${token}`);
+    expect(verifyRes.status).toBe(200);
+  }
 
   beforeEach(async () => {
     await request(app).post('/api/test/reset');
   });
 
   it('should return 200 with user profile when authenticated', async () => {
-    await request(app)
-      .post('/api/auth/register')
-      .send({ email: 'me@example.com', password: 'SecurePass123!', displayName: 'Me User' });
+    await registerAndVerify('me@example.com', 'SecurePass123!', 'Me User');
 
     const loginRes = await request(app)
       .post('/api/auth/login')

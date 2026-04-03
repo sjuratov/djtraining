@@ -1,10 +1,24 @@
 import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../../src/app.js';
+import { getUserByEmail } from '../../src/models/user-store.js';
 
 describe('Role-Based Access Control — role assignment', () => {
   const app = createApp();
   const previousAdminEmail = process.env.ADMIN_EMAIL;
+
+  async function registerAndVerify(email: string, password: string, displayName: string) {
+    const registerRes = await request(app)
+      .post('/api/auth/register')
+      .send({ email, password, displayName });
+    expect(registerRes.status).toBe(201);
+
+    const token = getUserByEmail(email)?.confirmationToken;
+    expect(token).toBeTruthy();
+
+    const verifyRes = await request(app).get(`/api/auth/verify/${token}`);
+    expect(verifyRes.status).toBe(200);
+  }
 
   beforeEach(async () => {
     await request(app).post('/api/test/reset');
@@ -20,9 +34,7 @@ describe('Role-Based Access Control — role assignment', () => {
   });
 
   it('should assign user role to the first registered user when ADMIN_EMAIL is not set', async () => {
-    await request(app)
-      .post('/api/auth/register')
-      .send({ email: 'first@example.com', password: 'SecurePass123!', displayName: 'First User' });
+    await registerAndVerify('first@example.com', 'SecurePass123!', 'First User');
 
     const loginRes = await request(app)
       .post('/api/auth/login')
@@ -40,9 +52,7 @@ describe('Role-Based Access Control — role assignment', () => {
   it('should assign admin role when registration email matches ADMIN_EMAIL', async () => {
     process.env.ADMIN_EMAIL = 'admin@example.com';
 
-    await request(app)
-      .post('/api/auth/register')
-      .send({ email: 'admin@example.com', password: 'SecurePass123!', displayName: 'Admin User' });
+    await registerAndVerify('admin@example.com', 'SecurePass123!', 'Admin User');
 
     const loginRes = await request(app)
       .post('/api/auth/login')
@@ -60,13 +70,9 @@ describe('Role-Based Access Control — role assignment', () => {
   it('should assign user role to users whose email does not match ADMIN_EMAIL', async () => {
     process.env.ADMIN_EMAIL = 'admin@example.com';
 
-    await request(app)
-      .post('/api/auth/register')
-      .send({ email: 'admin@example.com', password: 'SecurePass123!', displayName: 'Admin User' });
+    await registerAndVerify('admin@example.com', 'SecurePass123!', 'Admin User');
 
-    await request(app)
-      .post('/api/auth/register')
-      .send({ email: 'regular@example.com', password: 'SecurePass123!', displayName: 'Regular User' });
+    await registerAndVerify('regular@example.com', 'SecurePass123!', 'Regular User');
 
     const loginRes = await request(app)
       .post('/api/auth/login')

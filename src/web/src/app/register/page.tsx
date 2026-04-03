@@ -28,8 +28,8 @@ export default function RegisterPage() {
         body: JSON.stringify({ email, password, displayName }),
       });
 
-      if (res.status === 201) {
-        router.push('/login?registered=true');
+       if (res.status === 201) {
+         router.push('/login?registered=true');
       } else {
         const data = await res.json().catch(() => ({}));
         setError(data.error || 'Registrierung fehlgeschlagen. Bitte versuche es erneut.');

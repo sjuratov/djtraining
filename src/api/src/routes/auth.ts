@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'node:crypto';
 import rateLimit from 'express-rate-limit';
-import { getUserByEmail, getUserById, getUserByGoogleId, getUserByConfirmationToken, createUser, activateUser } from '../models/user-store.js';
+import { getUserByEmail, getUserById, getUserByGoogleId, getUserByConfirmationToken, createUser, activateUser, deleteUser } from '../models/user-store.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { emailService } from '../services/email.js';
 import { logger } from '../logger.js';
@@ -84,14 +84,20 @@ export function mapAuthEndpoints(app: Express): void {
       googleId: null,
     });
 
-    // Send verification email (stub auto-confirms for now)
-    await emailService.sendVerificationEmail(email, confirmationToken);
+    try {
+      await emailService.sendVerificationEmail(email, confirmationToken);
+    } catch (error) {
+      deleteUser(user.id);
+      logger.error({ err: error, email }, 'Failed to send verification email');
+      res.status(500).json({ error: 'Bestätigungs-E-Mail konnte nicht gesendet werden. Bitte versuche es erneut.' });
+      return;
+    }
 
-    // AUTO-CONFIRM: In dev/stub mode, immediately activate the user
-    // Remove this line when real email provider is connected
-    activateUser(user.id);
-
-    res.status(201).json({ message: 'Registrierung erfolgreich', role: user.role });
+    res.status(201).json({
+      message: 'Registrierung erfolgreich. Bitte bestätige deine E-Mail-Adresse.',
+      role: user.role,
+      verificationRequired: true,
+    });
   });
 
   // VERIFY EMAIL

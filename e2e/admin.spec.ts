@@ -18,6 +18,12 @@ async function createAdminUser(page: Page, email: string, password: string, disp
   });
 }
 
+async function createVerifiedUser(page: Page, email: string, password: string, displayName = 'Test User') {
+  await page.request.post('http://localhost:5001/api/test/create-user', {
+    data: { email, password, displayName },
+  });
+}
+
 test.beforeEach(async ({ context }) => {
   await context.request.post('http://localhost:5001/api/test/reset');
   await context.clearCookies();
@@ -30,7 +36,7 @@ test.describe('Admin Dashboard', () => {
     await createAdminUser(page, adminEmail, password, 'Admin User');
 
     const regularEmail = uniqueEmail();
-    await registerUser(page, regularEmail, password, 'Regular User');
+    await createVerifiedUser(page, regularEmail, password, 'Regular User');
 
     await loginUser(page, adminEmail, password);
     await page.goto('/admin');
@@ -48,7 +54,7 @@ test.describe('Admin Dashboard', () => {
 
     const regularEmail = uniqueEmail();
     const password = 'SecurePass123!';
-    await registerUser(page, regularEmail, password, 'Regular');
+    await createVerifiedUser(page, regularEmail, password, 'Regular');
     await loginUser(page, regularEmail, password);
 
     await page.goto('/admin');

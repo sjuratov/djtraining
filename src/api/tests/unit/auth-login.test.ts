@@ -1,20 +1,31 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../../src/app.js';
-import { createUser } from '../../src/models/user-store.js';
+import { createUser, getUserByEmail } from '../../src/models/user-store.js';
 import bcrypt from 'bcryptjs';
 
 describe('POST /api/auth/login', () => {
   const app = createApp();
+
+  async function registerAndVerify(email: string, password: string, displayName: string) {
+    const registerRes = await request(app)
+      .post('/api/auth/register')
+      .send({ email, password, displayName });
+    expect(registerRes.status).toBe(201);
+
+    const token = getUserByEmail(email)?.confirmationToken;
+    expect(token).toBeTruthy();
+
+    const verifyRes = await request(app).get(`/api/auth/verify/${token}`);
+    expect(verifyRes.status).toBe(200);
+  }
 
   beforeEach(async () => {
     await request(app).post('/api/test/reset');
   });
 
   it('should return 200 and set JWT cookie on successful login', async () => {
-    await request(app)
-      .post('/api/auth/register')
-      .send({ email: 'login@example.com', password: 'SecurePass123!', displayName: 'Login User' });
+    await registerAndVerify('login@example.com', 'SecurePass123!', 'Login User');
 
     const res = await request(app)
       .post('/api/auth/login')
@@ -28,9 +39,7 @@ describe('POST /api/auth/login', () => {
   });
 
   it('should set JWT cookie with correct security attributes', async () => {
-    await request(app)
-      .post('/api/auth/register')
-      .send({ email: 'cookie@example.com', password: 'SecurePass123!', displayName: 'Cookie User' });
+    await registerAndVerify('cookie@example.com', 'SecurePass123!', 'Cookie User');
 
     const res = await request(app)
       .post('/api/auth/login')
@@ -47,9 +56,7 @@ describe('POST /api/auth/login', () => {
   });
 
   it('should return 401 for invalid password', async () => {
-    await request(app)
-      .post('/api/auth/register')
-      .send({ email: 'wrongpass@example.com', password: 'SecurePass123!', displayName: 'Wrong Pass' });
+    await registerAndVerify('wrongpass@example.com', 'SecurePass123!', 'Wrong Pass');
 
     const res = await request(app)
       .post('/api/auth/login')

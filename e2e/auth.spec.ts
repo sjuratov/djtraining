@@ -12,6 +12,12 @@ async function loginUser(page: Page, email: string, password: string) {
   await page.request.post('/api/auth/login', { data: { email, password } });
 }
 
+async function createVerifiedUser(page: Page, email: string, password: string, displayName = 'Test User') {
+  await page.request.post('http://localhost:5001/api/test/create-user', {
+    data: { email, password, displayName },
+  });
+}
+
 test.beforeEach(async ({ context }) => {
   await context.request.post('http://localhost:5001/api/test/reset');
   await context.clearCookies();
@@ -34,7 +40,7 @@ test.describe('Registration', () => {
     await page.getByRole('button', { name: 'Registrieren' }).click();
 
     await expect(page).toHaveURL(/\/login/);
-    await expect(page.getByText(/Registrierung erfolgreich/i)).toBeVisible();
+    await expect(page.getByText(/Bitte bestätige deine E-Mail-Adresse/i)).toBeVisible();
   });
 
   test('should show error when registering with duplicate email', async ({ page }) => {
@@ -90,7 +96,7 @@ test.describe('Login', () => {
   test('should login with valid credentials and redirect to home', async ({ page }) => {
     const email = uniqueEmail();
     const password = 'SecurePass123!';
-    await registerUser(page, email, password);
+    await createVerifiedUser(page, email, password);
 
     await page.getByLabel('E-Mail').fill(email);
     await page.getByLabel('Passwort').fill(password);
@@ -101,7 +107,7 @@ test.describe('Login', () => {
 
   test('should show error for wrong password', async ({ page }) => {
     const email = uniqueEmail();
-    await registerUser(page, email, 'SecurePass123!');
+    await createVerifiedUser(page, email, 'SecurePass123!');
 
     await page.getByLabel('E-Mail').fill(email);
     await page.getByLabel('Passwort').fill('WrongPassword!');
@@ -127,7 +133,19 @@ test.describe('Login', () => {
 
   test('should show success message when redirected after registration', async ({ page }) => {
     await page.goto('/login?registered=true');
-    await expect(page.getByText(/Registrierung erfolgreich/i)).toBeVisible();
+    await expect(page.getByText(/Bitte bestätige deine E-Mail-Adresse/i)).toBeVisible();
+  });
+
+  test('should block login until email is verified', async ({ page }) => {
+    const email = uniqueEmail();
+    const password = 'SecurePass123!';
+    await registerUser(page, email, password);
+
+    await page.getByLabel('E-Mail').fill(email);
+    await page.getByLabel('Passwort').fill(password);
+    await page.getByRole('button', { name: 'Anmelden' }).click();
+
+    await expect(page.getByText(/Bitte bestätige zuerst deine E-Mail-Adresse/i)).toBeVisible();
   });
 });
 
@@ -135,7 +153,7 @@ test.describe('Logout', () => {
   test('should logout and redirect to login', async ({ page }) => {
     const email = uniqueEmail();
     const password = 'SecurePass123!';
-    await registerUser(page, email, password);
+    await createVerifiedUser(page, email, password);
     await loginUser(page, email, password);
 
     await page.goto('/profile');
@@ -147,7 +165,7 @@ test.describe('Logout', () => {
   test('should redirect to login when visiting profile after logout', async ({ page }) => {
     const email = uniqueEmail();
     const password = 'SecurePass123!';
-    await registerUser(page, email, password);
+    await createVerifiedUser(page, email, password);
     await loginUser(page, email, password);
 
     await page.goto('/profile');
