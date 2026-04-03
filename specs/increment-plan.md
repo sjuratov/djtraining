@@ -824,3 +824,33 @@ ext-pre-001 (Database)
 - **Dependencies:** ext-005
 - **Rollback Plan:** Remove calendar page; admin can still manage via list view
 - **Risk:** Medium — calendar UI is complex. Consider a lightweight library (e.g., `@fullcalendar/react`).
+
+---
+
+## ext-007: Admin Schedule Setup UI
+
+- **Type:** extension
+- **FRD:** frd-admin-setup.md
+- **Scope:** Admin settings page (`/admin/einstellungen`) with three sections: training type CRUD, schedule template CRUD, and slot generation trigger. All API endpoints already exist — this is a frontend-only increment. Adds "Einstellungen" link to admin navigation.
+- **Acceptance Criteria:**
+  - [ ] Admin can view/create/edit/deactivate training types
+  - [ ] Admin can view/create/edit/deactivate schedule templates
+  - [ ] Admin can trigger slot generation for a date range
+  - [ ] "Einstellungen" link in admin navigation (desktop + mobile)
+  - [ ] Non-admin users see access denied
+  - [ ] All form fields validate before submission
+  - [ ] Responsive layout
+- **Test Strategy:**
+  - Unit: existing API tests cover all endpoints (152 tests, no new API code)
+  - E2e: admin navigates to settings → creates training type → creates template → generates slots → verifies slots in calendar
+  - Regression: all 152 API tests + web build pass
+- **Gherkin Deltas:**
+  - New: Admin creates training type via UI, Admin creates schedule template via UI, Admin generates slots via UI
+  - Regression: all previous scenarios pass
+- **Integration Points:**
+  - New page: `/admin/einstellungen`
+  - Extended: admin navigation in Header (desktop + mobile)
+  - Uses existing API: `/api/admin/training-types`, `/api/admin/schedule-templates`, `/api/admin/generate-slots`
+- **Dependencies:** ext-006
+- **Rollback Plan:** Remove settings page; admin can still use calendar ad-hoc slots
+- **Risk:** Low — frontend-only, all APIs tested and working

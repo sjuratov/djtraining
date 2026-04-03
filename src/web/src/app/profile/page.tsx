@@ -291,7 +291,7 @@ export default function ProfilePage() {
                   id="birthDate"
                   data-testid="field-birthDate"
                   type="date"
-                  value={profile.birthDate}
+                  value={profile.birthDate ?? ''}
                   onChange={(e) => updateField('birthDate', e.target.value)}
                   className={inputClass}
                 />

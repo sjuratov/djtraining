@@ -143,21 +143,7 @@ export default function Header() {
               </button>
               {userMenuOpen && (
                 <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-md border border-gray-200 bg-white py-1 shadow-lg">
-                  <Link
-                    href="/meine-termine"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                    onClick={() => setUserMenuOpen(false)}
-                  >
-                    Meine Termine
-                  </Link>
-                  <Link
-                    href="/profile"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                    onClick={() => setUserMenuOpen(false)}
-                  >
-                    Mein Profil
-                  </Link>
-                  {user.role === 'admin' && (
+                  {user.role === 'admin' ? (
                     <>
                       <Link
                         href="/admin/kalender"
@@ -167,14 +153,36 @@ export default function Header() {
                         Kalender
                       </Link>
                       <Link
+                        href="/admin/einstellungen"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        Einstellungen
+                      </Link>
+                      <Link
                         href="/admin"
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                         onClick={() => setUserMenuOpen(false)}
                       >
-                        Admin
+                        Benutzerverwaltung
                       </Link>
                     </>
+                  ) : (
+                    <Link
+                      href="/meine-termine"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      Meine Termine
+                    </Link>
                   )}
+                  <Link
+                    href="/profile"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    onClick={() => setUserMenuOpen(false)}
+                  >
+                    Mein Profil
+                  </Link>
                   <button
                     onClick={handleLogout}
                     className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
@@ -248,21 +256,7 @@ export default function Header() {
           <div className="mt-2 border-t border-gray-200 pt-2">
             {user ? (
               <>
-                <Link
-                  href="/meine-termine"
-                  className="block rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Meine Termine
-                </Link>
-                <Link
-                  href="/profile"
-                  className="block rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Mein Profil
-                </Link>
-                {user.role === 'admin' && (
+                {user.role === 'admin' ? (
                   <>
                     <Link
                       href="/admin/kalender"
@@ -272,14 +266,36 @@ export default function Header() {
                       Kalender
                     </Link>
                     <Link
+                      href="/admin/einstellungen"
+                      className="block rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Einstellungen
+                    </Link>
+                    <Link
                       href="/admin"
                       className="block rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
                       onClick={() => setMobileMenuOpen(false)}
                     >
-                      Admin
+                      Benutzerverwaltung
                     </Link>
                   </>
+                ) : (
+                  <Link
+                    href="/meine-termine"
+                    className="block rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Meine Termine
+                  </Link>
                 )}
+                <Link
+                  href="/profile"
+                  className="block rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Mein Profil
+                </Link>
                 <button
                   onClick={handleLogout}
                   className="block w-full rounded-md px-3 py-2 text-left text-base font-medium text-gray-700 hover:bg-gray-50"

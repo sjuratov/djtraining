@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface User {
@@ -285,8 +285,8 @@ export default function AdminPage() {
           </thead>
           <tbody>
             {filteredUsers.map((u) => (
-              <>
-                <tr key={u.id} className="border-b border-gray-100">
+              <React.Fragment key={u.id}>
+                <tr className="border-b border-gray-100">
                   <td className="px-4 py-3 text-gray-900">{u.email}</td>
                   <td className="px-4 py-3 text-gray-700">{u.displayName}</td>
                   <td className="px-4 py-3">
@@ -337,13 +337,13 @@ export default function AdminPage() {
                   </td>
                 </tr>
                 {expandedUserId === u.id && (
-                  <tr key={`${u.id}-profile`} className="border-b border-gray-100">
+                  <tr className="border-b border-gray-100">
                     <td colSpan={7} className="bg-gray-50">
                       <ProfilePanel userId={u.id} onClose={() => setExpandedUserId(null)} />
                     </td>
                   </tr>
                 )}
-              </>
+              </React.Fragment>
             ))}
           </tbody>
         </table>
