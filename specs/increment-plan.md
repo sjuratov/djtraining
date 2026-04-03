@@ -575,3 +575,252 @@ Ordered by priority tier (Tier 2 → 3 → 4). No Tier 1 findings remain.
 - **Dependencies:** none
 - **Rollback Plan:** Revert stricter test-route registration guard
 - **Risk:** Low — configuration-focused hardening
+
+---
+
+# Extension: Booking & Scheduling System
+
+## Overview
+
+This extension adds database persistence, training schedule management, session booking, and package tracking to the DJ Training app. It transforms the platform from a marketing site with auth into a functional business operations tool.
+
+**FRDs:** frd-database.md, frd-scheduling.md, frd-booking.md, frd-packages.md
+
+**Dependency chain:**
+```
+ext-pre-001 (Database) 
+    → ext-001 (Schedule & Groups)
+        → ext-002 (Personal Booking)
+            → ext-003 (Group Enrollment)
+        → ext-004 (Packages)
+            → ext-005 (Client Dashboard)
+    → ext-006 (Admin Calendar)
+```
+
+---
+
+## ext-pre-001: Database Persistence (SQLite Migration)
+
+- **Type:** extension-prerequisite
+- **FRD:** frd-database.md
+- **Scope:** Replace in-memory `Map<string, User>` with SQLite using `better-sqlite3`. Create `users` and `member_profiles` tables. Implement migration system. All existing features work identically.
+- **Acceptance Criteria:**
+  - [ ] SQLite database created at `DATABASE_PATH` (default: `./data/djtraining.db`)
+  - [ ] All `user-store.ts` functions backed by SQLite (same signatures)
+  - [ ] User data persists across server restarts
+  - [ ] Migration system runs on startup
+  - [ ] `clearUsers()` truncates tables (test isolation)
+  - [ ] Database file in `.gitignore`
+  - [ ] All 69 API tests pass
+  - [ ] All 111 e2e tests pass
+- **Test Strategy:**
+  - Unit tests for all user-store functions against SQLite
+  - Migration tests (empty DB → tables created, idempotent re-run)
+  - Regression: ALL existing API + e2e tests pass without modification
+- **Gherkin Deltas:**
+  - Regression: All existing auth, profile, and admin scenarios must still pass
+  - No new user-facing behavior (transparent infrastructure change)
+- **Integration Points:**
+  - Replaces `src/api/src/models/user-store.ts` internals
+  - No API or UI changes
+- **Dependencies:** none
+- **Rollback Plan:** Revert to in-memory store (git revert)
+- **Risk:** Medium — touches every feature's data layer. Mitigated by keeping function signatures identical.
+
+---
+
+## ext-001: Schedule Templates & Training Types
+
+- **Type:** extension
+- **FRD:** frd-scheduling.md
+- **Scope:** Admin CRUD for training types (Personal Training, Gruppentraining, etc.) and recurring weekly schedule templates. Slot generation engine produces bookable time slots from templates. Public API for available slots. Dynamic `/trainingszeiten` page.
+- **Acceptance Criteria:**
+  - [ ] Admin can create/edit/deactivate training types
+  - [ ] Admin can create/edit/deactivate schedule templates (day, time, type)
+  - [ ] System generates time slots for 4-week horizon
+  - [ ] Admin can cancel or reschedule individual slots
+  - [ ] `/trainingszeiten` renders from database
+  - [ ] Public API returns available slots with filters
+  - [ ] Non-admin cannot access admin endpoints
+- **Test Strategy:**
+  - Unit: training type CRUD, template CRUD, slot generation logic
+  - API integration: admin endpoints auth/validation, public slot query
+  - E2e: admin creates training type + template → public schedule page shows it
+  - Regression: all existing tests pass
+- **Gherkin Deltas:**
+  - New: Admin creates training type, Admin creates schedule template, System generates slots
+  - New: Public schedule page shows dynamic data
+  - Modified: `/trainingszeiten` now database-driven (existing static content replaced)
+  - Regression: all existing navigation, auth, admin scenarios pass
+- **Integration Points:**
+  - New tables: `training_types`, `schedule_templates`, `time_slots`
+  - New routes: `/api/admin/training-types`, `/api/admin/schedule-templates`, `/api/schedule/slots`
+  - Modified: `/trainingszeiten` page component
+  - Extended: admin dashboard with schedule management section
+- **Dependencies:** ext-pre-001
+- **Rollback Plan:** Drop new tables, revert schedule page to static
+- **Risk:** Medium — replaces static schedule page with dynamic. Existing e2e for schedule page will need updates.
+
+---
+
+## ext-002: Personal Training Booking
+
+- **Type:** extension
+- **FRD:** frd-booking.md (personal training scope)
+- **Scope:** Walking skeleton for booking. Client browses available personal training slots, books a session, sees confirmation. Basic booking page + API. No group capacity logic yet, no packages.
+- **Acceptance Criteria:**
+  - [ ] Client can view available personal training slots
+  - [ ] Client can book an available slot
+  - [ ] Client cannot double-book the same slot
+  - [ ] Client cannot book a full (capacity 1) slot
+  - [ ] Client sees booking confirmation
+  - [ ] Booking stored in database
+  - [ ] Admin can view all bookings list
+- **Test Strategy:**
+  - Unit: booking creation, double-booking prevention, capacity check
+  - API integration: POST /api/bookings, GET /api/bookings, admin GET
+  - E2e: client browses slots → books → sees confirmation
+  - Regression: all existing + ext-001 tests pass
+- **Gherkin Deltas:**
+  - New: Client books personal training, Client cannot double-book, Admin views bookings
+  - Regression: all existing scenarios pass
+- **Integration Points:**
+  - New table: `bookings`
+  - New routes: `/api/bookings`, `/api/admin/bookings`
+  - New page: `/buchen` (booking flow)
+  - Extended: user navigation with "Termin buchen" link
+- **Dependencies:** ext-001
+- **Rollback Plan:** Drop bookings table, remove booking routes and page
+- **Risk:** Low — new feature with no modification of existing features
+
+---
+
+## ext-003: Group Training Enrollment
+
+- **Type:** extension
+- **FRD:** frd-booking.md (group training scope)
+- **Scope:** Extend booking to support group training with multi-participant capacity. Clients can enroll in group sessions. Capacity tracking (available spots shown, slot becomes full at max).
+- **Acceptance Criteria:**
+  - [ ] Client can book group training slots
+  - [ ] Available spots count shown per group slot
+  - [ ] Slot status changes to 'full' at max capacity
+  - [ ] Slot reopens on cancellation
+  - [ ] Multiple clients can book the same group slot
+  - [ ] Booking flow shows training type selector (personal vs group)
+- **Test Strategy:**
+  - Unit: capacity tracking, full-slot rejection, capacity release on cancel
+  - API integration: concurrent booking race conditions (transaction safety)
+  - E2e: multiple clients book same group slot → capacity decreases → full rejection
+  - Regression: all personal booking tests still pass
+- **Gherkin Deltas:**
+  - New: Client books group training, Slot becomes full at capacity, Capacity released on cancel
+  - Modified: Booking flow adds training type selection step
+  - Regression: personal booking scenarios unchanged
+- **Integration Points:**
+  - Modified: booking routes to handle capacity > 1
+  - Modified: `/buchen` page adds training type selector
+  - Modified: slot availability API shows remaining capacity
+- **Dependencies:** ext-002
+- **Rollback Plan:** Revert capacity logic; personal booking still works
+- **Risk:** Low — extends existing booking with capacity dimension
+
+---
+
+## ext-004: Training Packages
+
+- **Type:** extension
+- **FRD:** frd-packages.md
+- **Scope:** Admin creates package definitions (matching current pricing), assigns packages to clients. Session auto-deducted on booking, credited back on cancellation. Client sees balance on profile.
+- **Acceptance Criteria:**
+  - [ ] Admin can create package definitions (name, type, sessions, price, validity)
+  - [ ] Admin can assign package to client
+  - [ ] Booking deducts 1 session from active package (FIFO by expiry)
+  - [ ] Cancellation credits 1 session back
+  - [ ] Client sees package balance on profile page
+  - [ ] Booking without active package is allowed (pay-per-session)
+  - [ ] Admin can manually adjust remaining sessions
+  - [ ] Default packages seeded from current pricing
+- **Test Strategy:**
+  - Unit: package CRUD, deduction logic, FIFO selection, credit-back
+  - API integration: admin package endpoints, client package view, booking+deduction atomicity
+  - E2e: admin assigns package → client books → balance decreases → client cancels → balance increases
+  - Regression: all booking tests still pass (with and without packages)
+- **Gherkin Deltas:**
+  - New: Admin creates package, Admin assigns package, Session deducted on booking, Balance shown on profile
+  - Modified: Booking confirmation shows package balance
+  - Regression: all booking scenarios pass (no-package path)
+- **Integration Points:**
+  - New tables: `package_definitions`, `client_packages`
+  - New routes: `/api/admin/package-definitions`, `/api/admin/users/:id/packages`, `/api/packages`
+  - Modified: booking creation logic (deduction hook)
+  - Modified: profile page (package balance section)
+  - Modified: admin user detail (package assignment)
+- **Dependencies:** ext-002
+- **Rollback Plan:** Remove deduction hook, drop package tables. Booking works without packages.
+- **Risk:** Medium — modifies booking creation path. Use transactions for atomicity.
+
+---
+
+## ext-005: Client Booking Dashboard
+
+- **Type:** extension
+- **FRD:** frd-booking.md (client dashboard scope)
+- **Scope:** "Meine Termine" page for clients. View upcoming/past bookings. Cancel with 24h soft warning. Reschedule flow (cancel + rebook).
+- **Acceptance Criteria:**
+  - [ ] Client sees upcoming bookings on `/meine-termine`
+  - [ ] Client sees past bookings (collapsed)
+  - [ ] Client can cancel a future booking
+  - [ ] 24h warning shown for late cancellations (still allowed)
+  - [ ] Client can reschedule to another available slot
+  - [ ] Package balance shown if active package
+  - [ ] Navigation includes "Meine Termine" for authenticated users
+- **Test Strategy:**
+  - Unit: cancellation logic, 24h warning threshold, reschedule validation
+  - API integration: cancel + credit-back, reschedule atomicity
+  - E2e: client books → views dashboard → cancels → sees updated list
+  - Regression: all booking + package tests pass
+- **Gherkin Deltas:**
+  - New: Client views bookings, Client cancels booking, 24h cancellation warning, Client reschedules
+  - Regression: all previous scenarios pass
+- **Integration Points:**
+  - New page: `/meine-termine`
+  - Modified: user navigation (add "Meine Termine")
+  - Modified: booking API (cancel, reschedule endpoints)
+- **Dependencies:** ext-003, ext-004
+- **Rollback Plan:** Remove page and nav link; booking API still works
+- **Risk:** Low — new UI page with existing API data
+
+---
+
+## ext-006: Admin Calendar & Management
+
+- **Type:** extension
+- **FRD:** frd-booking.md (admin calendar scope), frd-scheduling.md (exception management)
+- **Scope:** Full admin calendar view (monthly/weekly/daily) with complete CRUD. Color-coded by training type. Create ad-hoc slots, edit/reschedule via drag-and-drop or click, delete/cancel slots or date ranges. Manage bookings from calendar context. Book on behalf of clients. Multiple admins supported — any admin can manage the full calendar.
+- **Acceptance Criteria:**
+  - [ ] Admin calendar shows all time slots with booking counts (monthly/weekly/daily views)
+  - [ ] Calendar is color-coded by training type
+  - [ ] **Create:** Admin can create ad-hoc time slots directly on the calendar
+  - [ ] **Read:** Admin can click any slot to see bookings, participant list, capacity
+  - [ ] **Update:** Admin can reschedule slots (change date/time), edit slot details
+  - [ ] **Delete:** Admin can cancel individual slots or bulk-cancel a date range (vacation)
+  - [ ] Admin can book on behalf of a client from a slot context
+  - [ ] Admin can mark bookings as completed or no-show
+  - [ ] Admin can see at-a-glance package status per client
+  - [ ] Multiple admins can use the calendar concurrently
+- **Test Strategy:**
+  - Unit: calendar data aggregation, bulk slot cancellation, ad-hoc slot creation
+  - API integration: admin book-on-behalf, bulk cancel, status updates, CRUD slot endpoints
+  - E2e: admin navigates calendar → creates slot → books client → reschedules → cancels
+  - Regression: all previous tests pass
+- **Gherkin Deltas:**
+  - New: Admin views calendar, Admin creates slot from calendar, Admin edits slot, Admin bulk-cancels, Admin books for client, Admin marks no-show
+  - Regression: all previous scenarios pass
+- **Integration Points:**
+  - New page: `/admin/kalender`
+  - Extended: admin navigation
+  - Modified: admin booking endpoints (book-on-behalf, status update, bulk cancel)
+  - New: ad-hoc slot creation endpoint (POST /api/admin/time-slots)
+- **Dependencies:** ext-005
+- **Rollback Plan:** Remove calendar page; admin can still manage via list view
+- **Risk:** Medium — calendar UI is complex. Consider a lightweight library (e.g., `@fullcalendar/react`).

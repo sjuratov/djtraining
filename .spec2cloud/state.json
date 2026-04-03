@@ -35,9 +35,16 @@
     { "id": "sec-016", "type": "security", "tier": 3, "status": "complete" },
     { "id": "sec-017", "type": "security", "tier": 3, "status": "complete" },
     { "id": "sec-018", "type": "security", "tier": 4, "status": "complete" },
-    { "id": "sec-019", "type": "security", "tier": 4, "status": "complete" }
+    { "id": "sec-019", "type": "security", "tier": 4, "status": "complete" },
+    { "id": "ext-pre-001", "type": "extension", "frd": "frd-database.md", "name": "Database Persistence (SQLite)", "status": "complete" },
+    { "id": "ext-001", "type": "extension", "frd": "frd-scheduling.md", "name": "Schedule Templates & Training Types", "status": "planned" },
+    { "id": "ext-002", "type": "extension", "frd": "frd-booking.md", "name": "Personal Training Booking", "status": "planned" },
+    { "id": "ext-003", "type": "extension", "frd": "frd-booking.md", "name": "Group Training Enrollment", "status": "planned" },
+    { "id": "ext-004", "type": "extension", "frd": "frd-packages.md", "name": "Training Packages", "status": "planned" },
+    { "id": "ext-005", "type": "extension", "frd": "frd-booking.md", "name": "Client Booking Dashboard", "status": "planned" },
+    { "id": "ext-006", "type": "extension", "frd": "frd-booking.md", "name": "Admin Calendar & Management", "status": "planned" }
   ],
-  "currentIncrement": null,
+  "currentIncrement": "ext-pre-001",
   "increments": {
     "inc-1": { "status": "complete", "frds": ["FRD-001", "FRD-002"] },
     "inc-2": { "status": "complete", "frds": ["FRD-003", "FRD-004", "FRD-005", "FRD-007", "FRD-008"] },
@@ -61,5 +68,6 @@
     "webBuild": { "routes": 18, "status": "green" },
     "e2e": { "total": 111, "passed": 111, "failed": 0 }
   },
-  "lastUpdated": "2026-04-03T09:54:37Z"
+  "activePaths_extension": ["database", "scheduling", "booking", "packages"],
+  "lastUpdated": "2026-04-03T11:05:00Z"
 }

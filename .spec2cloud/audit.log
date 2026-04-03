@@ -38,3 +38,8 @@
 [2026-04-03T09:54:37Z] increment=sec-019 slice=api action=slice-implemented result=pass:69/fail:0 test-routes:localhost-or-test-only
 [2026-04-03T09:54:37Z] increment=sec-018 slice=integration action=slice-implemented result=pass:111/fail:0
 [2026-04-03T09:54:37Z] increment=sec-019 slice=integration action=slice-implemented result=pass:111/fail:0
+[2026-04-03T10:15:00Z] step=extension-planning action=frds-generated count=4 result=done frds=frd-database.md,frd-scheduling.md,frd-booking.md,frd-packages.md
+[2026-04-03T10:15:00Z] step=extension-planning action=increments-generated count=7 result=done increments=ext-pre-001,ext-001,ext-002,ext-003,ext-004,ext-005,ext-006
+[2026-04-03T10:46:00Z] step=extension-planning action=frds-updated reason="human-feedback: generic admins, Azure deployment path, default package seed data, admin calendar CRUD" frds=frd-database.md,frd-scheduling.md,frd-booking.md,frd-packages.md
+[2026-04-03T10:46:00Z] step=extension-planning action=increment-plan-updated result=done increments=ext-006-calendar-crud-strengthened
+[2026-04-03T11:05:00Z] step=ext-pre-001 action=implementation result=done desc="SQLite migration complete — better-sqlite3, migration system, user-store rewrite" api=69/69 e2e=111/111

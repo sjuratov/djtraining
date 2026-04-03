@@ -56,3 +56,7 @@ apphost.settings.json
 
 # Google OAuth credentials
 client_secret_*.json
+data/
+*.db
+*.db-wal
+*.db-shm

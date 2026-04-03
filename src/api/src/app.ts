@@ -10,7 +10,7 @@ import { mapAuthEndpoints } from './routes/auth.js';
 import { mapAdminEndpoints } from './routes/admin.js';
 import { mapContactEndpoints } from './routes/contact.js';
 import { mapProfileEndpoints } from './routes/profile.js';
-import { clearUsers, createUser, getUserByEmail, deleteUser, activateUser } from './models/user-store.js';
+import { clearUsers, createUser, getUserByEmail, deleteUser, activateUser, setUserRole } from './models/user-store.js';
 
 function isLoopbackHostname(hostname: string): boolean {
   return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
@@ -109,7 +109,7 @@ export function createApp(): express.Express {
         confirmationToken: null,
         googleId: null,
       });
-      if (role) { user.role = role; }
+      if (role) { setUserRole(user.id, role); }
       activateUser(user.id);
       res.json({ message: 'User created' });
     });

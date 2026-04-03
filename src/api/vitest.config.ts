@@ -9,6 +9,7 @@ export default defineConfig({
     env: {
       JWT_SECRET: 'test-jwt-secret-for-vitest',
       ENABLE_TEST_ROUTES: 'true',
+      DATABASE_PATH: ':memory:',
     },
     coverage: {
       provider: 'v8',
