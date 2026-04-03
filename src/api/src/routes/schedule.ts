@@ -14,6 +14,8 @@ import {
   cancelSlot,
   updateSlot,
   generateSlots,
+  createAdHocSlot,
+  bulkCancelSlots,
 } from '../services/schedule.js';
 
 export function mapScheduleEndpoints(app: Express): void {
@@ -127,6 +129,43 @@ export function mapScheduleEndpoints(app: Express): void {
   });
 
   // ── Admin: Time Slots ──
+
+  app.post('/api/admin/time-slots', authMiddleware, requireRole('admin'), (req: Request, res: Response) => {
+    const { trainingTypeId, date, startTime, endTime, maxCapacity, notes } = req.body;
+
+    if (!trainingTypeId || !date || !startTime || !endTime) {
+      res.status(400).json({ error: 'Trainingsart, Datum, Start- und Endzeit sind erforderlich' });
+      return;
+    }
+
+    const tt = getTrainingTypeById(trainingTypeId);
+    if (!tt) {
+      res.status(400).json({ error: 'Trainingsart nicht gefunden' });
+      return;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (new Date(date) < today) {
+      res.status(400).json({ error: 'Kann keine Zeitfenster in der Vergangenheit erstellen' });
+      return;
+    }
+
+    const slot = createAdHocSlot({ trainingTypeId, date, startTime, endTime, maxCapacity, notes });
+    res.status(201).json(slot);
+  });
+
+  app.post('/api/admin/time-slots/bulk-cancel', authMiddleware, requireRole('admin'), (req: Request, res: Response) => {
+    const { fromDate, toDate, reason } = req.body;
+
+    if (!fromDate || !toDate) {
+      res.status(400).json({ error: 'Start- und Enddatum sind erforderlich' });
+      return;
+    }
+
+    const result = bulkCancelSlots({ fromDate, toDate, reason });
+    res.json(result);
+  });
 
   app.post('/api/admin/time-slots/:id/cancel', authMiddleware, requireRole('admin'), (req: Request<{id: string}>, res: Response) => {
     const slot = getSlotById(req.params.id);

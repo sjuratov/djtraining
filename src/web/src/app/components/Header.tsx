@@ -158,13 +158,22 @@ export default function Header() {
                     Mein Profil
                   </Link>
                   {user.role === 'admin' && (
-                    <Link
-                      href="/admin"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                      onClick={() => setUserMenuOpen(false)}
-                    >
-                      Admin
-                    </Link>
+                    <>
+                      <Link
+                        href="/admin/kalender"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        Kalender
+                      </Link>
+                      <Link
+                        href="/admin"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        Admin
+                      </Link>
+                    </>
                   )}
                   <button
                     onClick={handleLogout}
@@ -254,13 +263,22 @@ export default function Header() {
                   Mein Profil
                 </Link>
                 {user.role === 'admin' && (
-                  <Link
-                    href="/admin"
-                    className="block rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Admin
-                  </Link>
+                  <>
+                    <Link
+                      href="/admin/kalender"
+                      className="block rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Kalender
+                    </Link>
+                    <Link
+                      href="/admin"
+                      className="block rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Admin
+                    </Link>
+                  </>
                 )}
                 <button
                   onClick={handleLogout}

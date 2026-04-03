@@ -8,8 +8,10 @@ import {
   getAdminBookings,
   updateBookingStatus,
   isWithin24Hours,
+  getSlotBookings,
 } from '../services/booking.js';
 import type { CreateBookingError, CancelBookingError } from '../services/booking.js';
+import { getCalendarSlots } from '../services/schedule.js';
 
 function isBookingError(result: unknown): result is CreateBookingError | CancelBookingError {
   return typeof result === 'object' && result !== null && 'code' in result;
@@ -96,6 +98,29 @@ export function mapBookingEndpoints(app: Express): void {
     }
 
     res.json({ ...result, within24hWarning: within24h });
+  });
+
+  // ── Admin: Calendar data ──
+
+  app.get('/api/admin/calendar', authMiddleware, requireRole('admin'), (req: Request, res: Response) => {
+    const from = req.query.from as string | undefined;
+    const to = req.query.to as string | undefined;
+
+    if (!from || !to) {
+      res.status(400).json({ error: 'Parameter "from" und "to" sind erforderlich' });
+      return;
+    }
+
+    const slots = getCalendarSlots({ from, to });
+    const bookings: Record<string, ReturnType<typeof getSlotBookings>> = {};
+    for (const slot of slots) {
+      const slotBookings = getSlotBookings(slot.id);
+      if (slotBookings.length > 0) {
+        bookings[slot.id] = slotBookings;
+      }
+    }
+
+    res.json({ slots, bookings });
   });
 
   // ── Admin: List all bookings ──

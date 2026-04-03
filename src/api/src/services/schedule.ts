@@ -40,6 +40,11 @@ export interface TimeSlot {
   trainingTypeCategory?: string;
 }
 
+export interface CalendarSlot extends TimeSlot {
+  currentBookings: number;
+  availableSpots: number;
+}
+
 // ── Row types ──
 
 interface TrainingTypeRow {
@@ -384,6 +389,76 @@ export function updateSlot(id: string, params: {
   values.push(id);
   db.prepare(`UPDATE time_slots SET ${fields.join(', ')} WHERE id = ?`).run(...values);
   return getSlotById(id);
+}
+
+// ── Ad-hoc Slots ──
+
+export function createAdHocSlot(params: {
+  trainingTypeId: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  maxCapacity?: number;
+  notes?: string;
+}): TimeSlot {
+  const db = getDb();
+  const tt = getTrainingTypeById(params.trainingTypeId);
+  if (!tt) {
+    throw new Error('Trainingsart nicht gefunden');
+  }
+
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const capacity = params.maxCapacity ?? tt.maxCapacity;
+
+  db.prepare(`
+    INSERT INTO time_slots (id, template_id, training_type_id, date, start_time, end_time, max_capacity, notes, created_at)
+    VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?)
+  `).run(id, params.trainingTypeId, params.date, params.startTime, params.endTime, capacity, params.notes ?? null, now);
+
+  return getSlotById(id)!;
+}
+
+// ── Bulk Cancel ──
+
+export function bulkCancelSlots(params: {
+  fromDate: string;
+  toDate: string;
+  reason?: string;
+}): { cancelledCount: number } {
+  const db = getDb();
+  const result = db.prepare(`
+    UPDATE time_slots SET status = 'cancelled'
+    WHERE date >= ? AND date <= ? AND status != 'cancelled'
+  `).run(params.fromDate, params.toDate);
+  return { cancelledCount: result.changes };
+}
+
+// ── Calendar View ──
+
+export function getCalendarSlots(params: {
+  from: string;
+  to: string;
+}): CalendarSlot[] {
+  const db = getDb();
+  const sql = `
+    SELECT ts.*, tt.name as training_type_name, tt.category as training_type_category,
+           COALESCE((SELECT COUNT(*) FROM bookings b WHERE b.time_slot_id = ts.id AND b.status = 'confirmed'), 0) as current_bookings
+    FROM time_slots ts
+    JOIN training_types tt ON ts.training_type_id = tt.id
+    WHERE ts.date >= ? AND ts.date <= ?
+    ORDER BY ts.date, ts.start_time
+  `;
+  const rows = db.prepare(sql).all(params.from, params.to) as (SlotRow & { current_bookings: number })[];
+  return rows.map(row => {
+    const slot = rowToSlot(row);
+    const currentBookings = row.current_bookings;
+    return {
+      ...slot,
+      currentBookings,
+      availableSpots: Math.max(0, slot.maxCapacity - currentBookings),
+    };
+  });
 }
 
 // ── Cleanup (for tests) ──

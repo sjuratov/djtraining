@@ -25,6 +25,11 @@ export interface Booking {
   trainingTypeCategory?: string;
 }
 
+export interface SlotBooking extends Booking {
+  userEmail?: string;
+  userDisplayName?: string;
+}
+
 interface BookingRow {
   id: string;
   user_id: string;
@@ -312,6 +317,28 @@ export function isWithin24Hours(slotDate: string, slotStartTime: string): boolea
   const slotDateTime = new Date(`${slotDate}T${slotStartTime}`);
   const hoursUntil = (slotDateTime.getTime() - Date.now()) / (1000 * 60 * 60);
   return hoursUntil >= 0 && hoursUntil < 24;
+}
+
+// ── Slot bookings (for calendar) ──
+
+export function getSlotBookings(timeSlotId: string): SlotBooking[] {
+  const db = getDb();
+  const rows = db.prepare(`
+    SELECT b.*, ts.date as slot_date, ts.start_time as slot_start_time, ts.end_time as slot_end_time,
+           tt.name as training_type_name, tt.category as training_type_category,
+           u.email as user_email, u.display_name as user_display_name
+    FROM bookings b
+    JOIN time_slots ts ON b.time_slot_id = ts.id
+    JOIN training_types tt ON ts.training_type_id = tt.id
+    JOIN users u ON b.user_id = u.id
+    WHERE b.time_slot_id = ?
+    ORDER BY b.created_at
+  `).all(timeSlotId) as (BookingRow & { user_email?: string; user_display_name?: string })[];
+  return rows.map(row => ({
+    ...rowToBooking(row),
+    userEmail: row.user_email,
+    userDisplayName: row.user_display_name,
+  }));
 }
 
 // ── Cleanup (for tests) ──
