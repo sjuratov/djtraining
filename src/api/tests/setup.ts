@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { setTestDatabase } from '../src/db/database.js';
 import { clearUsers } from '../src/models/user-store.js';
 import { clearScheduleData } from '../src/services/schedule.js';
+import { clearBookings } from '../src/services/booking.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -25,6 +26,7 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
+  clearBookings();
   clearScheduleData();
   clearUsers();
 });

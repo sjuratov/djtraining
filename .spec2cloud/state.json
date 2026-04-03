@@ -129,7 +129,7 @@
       "type": "extension",
       "frd": "frd-booking.md",
       "name": "Personal Training Booking",
-      "status": "planned"
+      "status": "complete"
     },
     {
       "id": "ext-003",
@@ -160,7 +160,7 @@
       "status": "planned"
     }
   ],
-  "currentIncrement": "ext-002",
+  "currentIncrement": "ext-003",
   "increments": {
     "inc-1": {
       "status": "complete",
