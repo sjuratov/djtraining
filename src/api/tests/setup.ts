@@ -7,6 +7,7 @@ import { setTestDatabase } from '../src/db/database.js';
 import { clearUsers } from '../src/models/user-store.js';
 import { clearScheduleData } from '../src/services/schedule.js';
 import { clearBookings } from '../src/services/booking.js';
+import { clearPackages } from '../src/services/packages.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -26,6 +27,7 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
+  clearPackages();
   clearBookings();
   clearScheduleData();
   clearUsers();

@@ -143,7 +143,7 @@
       "type": "extension",
       "frd": "frd-packages.md",
       "name": "Training Packages",
-      "status": "planned"
+      "status": "complete"
     },
     {
       "id": "ext-005",
@@ -160,7 +160,7 @@
       "status": "planned"
     }
   ],
-  "currentIncrement": "ext-004",
+  "currentIncrement": "ext-005",
   "increments": {
     "inc-1": {
       "status": "complete",

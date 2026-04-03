@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { getDb } from '../db/database.js';
 import { getSlotById, updateSlot } from './schedule.js';
 import type { TimeSlot } from './schedule.js';
+import { getActivePackageForBooking, deductSession, getPackageForCreditBack, creditSession } from './packages.js';
 
 // ── Types ──
 
@@ -142,6 +143,12 @@ export function createBooking(params: {
     if (activeCount + 1 >= slot.maxCapacity) {
       updateSlot(slot.id, { status: 'full' });
     }
+
+    // Deduct session from active package if available
+    const activePackage = getActivePackageForBooking(params.userId, slot.trainingTypeCategory ?? '');
+    if (activePackage) {
+      deductSession(activePackage.id);
+    }
   });
 
   insertBooking();
@@ -268,6 +275,12 @@ export function cancelBooking(bookingId: string, params: {
     const slot = getSlotById(booking.timeSlotId);
     if (slot) {
       updateSlotCapacityStatus(slot);
+
+      // Credit session back to matching package
+      const pkg = getPackageForCreditBack(booking.userId, slot.trainingTypeCategory ?? '');
+      if (pkg) {
+        creditSession(pkg.id);
+      }
     }
   });
 
