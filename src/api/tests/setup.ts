@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { setTestDatabase } from '../src/db/database.js';
 import { clearUsers } from '../src/models/user-store.js';
+import { clearScheduleData } from '../src/services/schedule.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -13,14 +14,18 @@ beforeAll(() => {
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
 
-  const migrationFile = path.join(__dirname, '..', 'src', 'db', 'migrations', '001-users.sql');
-  const sql = fs.readFileSync(migrationFile, 'utf-8');
-  db.exec(sql);
+  const migrationsDir = path.join(__dirname, '..', 'src', 'db', 'migrations');
+  const files = fs.readdirSync(migrationsDir).filter(f => f.endsWith('.sql')).sort();
+  for (const file of files) {
+    const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf-8');
+    db.exec(sql);
+  }
 
   setTestDatabase(db);
 });
 
 beforeEach(() => {
+  clearScheduleData();
   clearUsers();
 });
 

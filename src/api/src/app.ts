@@ -10,7 +10,9 @@ import { mapAuthEndpoints } from './routes/auth.js';
 import { mapAdminEndpoints } from './routes/admin.js';
 import { mapContactEndpoints } from './routes/contact.js';
 import { mapProfileEndpoints } from './routes/profile.js';
+import { mapScheduleEndpoints } from './routes/schedule.js';
 import { clearUsers, createUser, getUserByEmail, deleteUser, activateUser, setUserRole } from './models/user-store.js';
+import { clearScheduleData } from './services/schedule.js';
 
 function isLoopbackHostname(hostname: string): boolean {
   return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
@@ -89,10 +91,12 @@ export function createApp(): express.Express {
   mapAdminEndpoints(app);
   mapContactEndpoints(app);
   mapProfileEndpoints(app);
+  mapScheduleEndpoints(app);
 
   // Test-only: reset endpoint for e2e test isolation
   if (shouldEnableTestRoutes()) {
     app.post('/api/test/reset', (_req, res) => {
+      clearScheduleData();
       clearUsers();
       res.json({ message: 'Store cleared' });
     });
