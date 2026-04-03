@@ -323,13 +323,14 @@ export function getAvailableSlots(params: {
   from: string;
   to: string;
   category?: string;
-}): TimeSlot[] {
+}): (TimeSlot & { currentBookings: number; availableSpots: number })[] {
   const db = getDb();
   let sql = `
-    SELECT ts.*, tt.name as training_type_name, tt.category as training_type_category
+    SELECT ts.*, tt.name as training_type_name, tt.category as training_type_category,
+           COALESCE((SELECT COUNT(*) FROM bookings b WHERE b.time_slot_id = ts.id AND b.status = 'confirmed'), 0) as current_bookings
     FROM time_slots ts
     JOIN training_types tt ON ts.training_type_id = tt.id
-    WHERE ts.date >= ? AND ts.date <= ? AND ts.status = 'available'
+    WHERE ts.date >= ? AND ts.date <= ? AND ts.status IN ('available', 'full')
   `;
   const values: unknown[] = [params.from, params.to];
 
@@ -339,7 +340,16 @@ export function getAvailableSlots(params: {
   }
 
   sql += ' ORDER BY ts.date, ts.start_time';
-  return (db.prepare(sql).all(...values) as SlotRow[]).map(rowToSlot);
+  const rows = db.prepare(sql).all(...values) as (SlotRow & { current_bookings: number })[];
+  return rows.map(row => {
+    const slot = rowToSlot(row);
+    const currentBookings = row.current_bookings;
+    return {
+      ...slot,
+      currentBookings,
+      availableSpots: Math.max(0, slot.maxCapacity - currentBookings),
+    };
+  });
 }
 
 export function cancelSlot(id: string): TimeSlot | undefined {

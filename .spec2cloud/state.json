@@ -136,7 +136,7 @@
       "type": "extension",
       "frd": "frd-booking.md",
       "name": "Group Training Enrollment",
-      "status": "planned"
+      "status": "complete"
     },
     {
       "id": "ext-004",
@@ -160,7 +160,7 @@
       "status": "planned"
     }
   ],
-  "currentIncrement": "ext-003",
+  "currentIncrement": "ext-004",
   "increments": {
     "inc-1": {
       "status": "complete",

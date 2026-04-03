@@ -27,16 +27,17 @@ async function loginUser(email: string, role: 'user' | 'admin' = 'user') {
 }
 
 // Helper: create a future personal training slot
-function createFutureSlot(daysAhead = 7, capacity = 1) {
+function createFutureSlot(daysAhead = 7, capacity = 1, category: 'personal' | 'gruppe' | 'ernaehrung' = 'personal') {
   const futureDate = new Date(Date.now() + daysAhead * 86400000);
   const dateStr = futureDate.toISOString().split('T')[0];
   // Recalculate day of week from the date string to avoid timezone mismatch
   const parsedDate = new Date(dateStr + 'T12:00:00');
   const dayOfWeek = parsedDate.getDay();
 
+  const names: Record<string, string> = { personal: 'Personal Training', gruppe: 'Gruppentraining', ernaehrung: 'Ernährungscoaching' };
   const tt = createTrainingType({
-    name: 'Personal Training',
-    category: 'personal',
+    name: names[category],
+    category,
     durationMinutes: 60,
     maxCapacity: capacity,
     priceSingle: 120,
@@ -49,7 +50,7 @@ function createFutureSlot(daysAhead = 7, capacity = 1) {
   });
 
   const slots = generateSlots({ fromDate: dateStr, toDate: dateStr });
-  return { trainingType: tt, slot: slots[0] };
+  return { trainingType: tt, slot: slots[0], dateStr };
 }
 
 describe('Client Booking API', () => {
@@ -421,5 +422,122 @@ describe('Admin Booking API', () => {
       .set('Cookie', clientCookie);
 
     expect(res.status).toBe(403);
+  });
+});
+
+describe('Group Training Enrollment', () => {
+  let clientCookie: string[];
+
+  beforeEach(async () => {
+    const { cookie } = await loginUser('client@example.com');
+    clientCookie = cookie;
+  });
+
+  it('should show available spots on public slot API', async () => {
+    const { slot, dateStr } = createFutureSlot(7, 5, 'gruppe');
+
+    const res = await request(app)
+      .get(`/api/schedule/slots?from=${dateStr}&to=${dateStr}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(1);
+    expect(res.body[0].maxCapacity).toBe(5);
+    expect(res.body[0].currentBookings).toBe(0);
+    expect(res.body[0].availableSpots).toBe(5);
+  });
+
+  it('should decrement available spots after booking', async () => {
+    const { slot, dateStr } = createFutureSlot(7, 5, 'gruppe');
+
+    await request(app)
+      .post('/api/bookings')
+      .set('Cookie', clientCookie)
+      .send({ timeSlotId: slot.id });
+
+    const res = await request(app)
+      .get(`/api/schedule/slots?from=${dateStr}&to=${dateStr}`);
+
+    expect(res.body[0].currentBookings).toBe(1);
+    expect(res.body[0].availableSpots).toBe(4);
+  });
+
+  it('should fill group slot to capacity', async () => {
+    const { slot, dateStr } = createFutureSlot(7, 3, 'gruppe');
+
+    // Book 3 clients to fill capacity
+    for (let i = 0; i < 3; i++) {
+      const { cookie } = await loginUser(`user${i}@example.com`);
+      await request(app)
+        .post('/api/bookings')
+        .set('Cookie', cookie)
+        .send({ timeSlotId: slot.id });
+    }
+
+    // Check availability
+    const res = await request(app)
+      .get(`/api/schedule/slots?from=${dateStr}&to=${dateStr}`);
+
+    expect(res.body[0].currentBookings).toBe(3);
+    expect(res.body[0].availableSpots).toBe(0);
+    expect(res.body[0].status).toBe('full');
+  });
+
+  it('should restore capacity after cancellation', async () => {
+    const { slot, dateStr } = createFutureSlot(7, 2, 'gruppe');
+
+    // Book 2 clients to fill
+    const { cookie: cookie1 } = await loginUser('user1@example.com');
+    const book1 = await request(app)
+      .post('/api/bookings')
+      .set('Cookie', cookie1)
+      .send({ timeSlotId: slot.id });
+
+    const { cookie: cookie2 } = await loginUser('user2@example.com');
+    await request(app)
+      .post('/api/bookings')
+      .set('Cookie', cookie2)
+      .send({ timeSlotId: slot.id });
+
+    // Cancel one booking
+    await request(app)
+      .delete(`/api/bookings/${book1.body.id}`)
+      .set('Cookie', cookie1);
+
+    const res = await request(app)
+      .get(`/api/schedule/slots?from=${dateStr}&to=${dateStr}`);
+
+    expect(res.body[0].currentBookings).toBe(1);
+    expect(res.body[0].availableSpots).toBe(1);
+    expect(res.body[0].status).toBe('available');
+  });
+
+  it('should filter slots by category', async () => {
+    const { dateStr } = createFutureSlot(7, 1, 'personal');
+    createFutureSlot(7, 5, 'gruppe');
+
+    const res = await request(app)
+      .get(`/api/schedule/slots?from=${dateStr}&to=${dateStr}&category=gruppe`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(1);
+    expect(res.body[0].trainingTypeCategory).toBe('gruppe');
+  });
+
+  it('should include full slots in public API', async () => {
+    const { slot, dateStr } = createFutureSlot(7, 1, 'personal');
+
+    // Book to fill
+    await request(app)
+      .post('/api/bookings')
+      .set('Cookie', clientCookie)
+      .send({ timeSlotId: slot.id });
+
+    const res = await request(app)
+      .get(`/api/schedule/slots?from=${dateStr}&to=${dateStr}`);
+
+    // Full slots should still be visible (so clients can see schedule)
+    expect(res.body).toHaveLength(1);
+    expect(res.body[0].status).toBe('full');
+    expect(res.body[0].availableSpots).toBe(0);
   });
 });
