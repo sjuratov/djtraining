@@ -180,7 +180,7 @@
       "type": "extension",
       "frd": "frd-booking.md",
       "name": "Client Booking Dashboard",
-      "status": "planned"
+      "status": "complete"
     },
     {
       "id": "ext-006",
@@ -253,7 +253,7 @@
       "status": "complete"
     }
   ],
-  "currentIncrement": null,
+  "currentIncrement": "ext-006",
   "increments": {
     "inc-1": {
       "status": "complete",
@@ -480,6 +480,21 @@
       "testFiles": [
         "specs/features/web-observability.feature"
       ]
+    },
+    "ext-005": {
+      "status": "complete",
+      "frds": [
+        "frd-booking.md"
+      ],
+      "modifiedFiles": [
+        "specs/features/client-booking-dashboard.feature",
+        "tests/features/step-definitions/client-booking-dashboard-steps.ts",
+        "src/api/tests/unit/client-booking-dashboard.test.ts"
+      ],
+      "testFiles": [
+        "specs/features/client-booking-dashboard.feature",
+        "src/api/tests/unit/client-booking-dashboard.test.ts"
+      ]
     }
   },
   "humanGates": {
@@ -494,12 +509,13 @@
     "plan-approved": true,
     "ext-012-gherkin-approved": true,
     "ext-013-gherkin-approved": true,
-    "ext-014-gherkin-approved": true
+    "ext-014-gherkin-approved": true,
+    "ext-005-gherkin-approved": true
   },
   "testsStatus": {
     "apiUnit": {
-      "total": 177,
-      "passed": 177,
+      "total": 186,
+      "passed": 186,
       "failed": 0
     },
     "webBuild": {
@@ -507,8 +523,8 @@
       "status": "green"
     },
     "cucumber": {
-      "total": 78,
-      "passed": 78,
+      "total": 88,
+      "passed": 88,
       "failed": 0
     },
     "e2e": {
@@ -523,5 +539,5 @@
     "booking",
     "packages"
   ],
-  "lastUpdated": "2026-04-05T07:04:40Z"
+  "lastUpdated": "2026-04-05T07:44:45Z"
 }

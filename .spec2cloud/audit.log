@@ -105,3 +105,10 @@
 [2026-04-05T07:04:40Z] increment=ext-014 slice=web action=implemented result=build:green instrumentation:@vercel/otel+otlp-traces+metrics fail-open:enabled
 [2026-04-05T07:04:40Z] increment=ext-014 step=verification action=passed result=api:177/177 cucumber:78/78 playwright:114/114
 [2026-04-05T07:04:40Z] increment=ext-014 action=delivered result=done current-increment=null observability-complete=true
+[2026-04-05T07:44:45Z] gate=gherkin-generation increment=ext-005 scenarios=10 result=approved
+[2026-04-05T07:44:45Z] step=test-generation action=tests-generated increment=ext-005 files=specs/features/client-booking-dashboard.feature,tests/features/step-definitions/client-booking-dashboard-steps.ts,src/api/tests/unit/client-booking-dashboard.test.ts result=red
+[2026-04-05T07:44:45Z] increment=ext-005 step=contracts action=reviewed result=no-change reason=existing-booking-api-covers-dashboard
+[2026-04-05T07:44:45Z] increment=ext-005 slice=api action=verified result=api:186/186 existing-endpoints-cover-dashboard
+[2026-04-05T07:44:45Z] increment=ext-005 slice=web action=verified result=meine-termine-page-already-implemented cancel:working reschedule:cancel-rebook 24h-warning:working
+[2026-04-05T07:44:45Z] increment=ext-005 step=verification action=passed result=api:186/186 cucumber:88/88 playwright:114/114
+[2026-04-05T07:44:45Z] increment=ext-005 action=delivered result=done current-increment=ext-006
