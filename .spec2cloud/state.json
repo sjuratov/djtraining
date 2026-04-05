@@ -194,7 +194,7 @@
       "type": "extension",
       "frd": "frd-client-booking-calendar.md",
       "name": "Client Booking Month Calendar",
-      "status": "planned"
+      "status": "complete"
     },
     {
       "id": "ext-pre-002",
@@ -253,7 +253,7 @@
       "status": "complete"
     }
   ],
-  "currentIncrement": "ext-008",
+  "currentIncrement": null,
   "increments": {
     "inc-1": {
       "status": "complete",
@@ -512,6 +512,19 @@
         "specs/features/admin-calendar.feature",
         "src/api/tests/unit/admin-calendar.test.ts"
       ]
+    },
+    "ext-008": {
+      "status": "complete",
+      "frds": [
+        "frd-client-booking-calendar.md"
+      ],
+      "modifiedFiles": [
+        "specs/features/client-booking-calendar.feature",
+        "tests/features/step-definitions/client-booking-calendar-steps.ts"
+      ],
+      "testFiles": [
+        "specs/features/client-booking-calendar.feature"
+      ]
     }
   },
   "humanGates": {
@@ -528,7 +541,8 @@
     "ext-013-gherkin-approved": true,
     "ext-014-gherkin-approved": true,
     "ext-005-gherkin-approved": true,
-    "ext-006-gherkin-approved": true
+    "ext-006-gherkin-approved": true,
+    "ext-008-gherkin-approved": true
   },
   "testsStatus": {
     "apiUnit": {
@@ -541,8 +555,8 @@
       "status": "green"
     },
     "cucumber": {
-      "total": 97,
-      "passed": 97,
+      "total": 103,
+      "passed": 103,
       "failed": 0
     },
     "e2e": {
@@ -557,5 +571,5 @@
     "booking",
     "packages"
   ],
-  "lastUpdated": "2026-04-05T08:39:42Z"
+  "lastUpdated": "2026-04-05T09:24:33Z"
 }

@@ -69,7 +69,6 @@ describe('Client Booking API', () => {
   let clientUserId: string;
 
   beforeEach(async () => {
-    await request(app).post('/api/test/reset');
     const { user, cookie } = await loginUser('client@example.com');
     clientCookie = cookie;
     clientUserId = user.id;
@@ -319,7 +318,6 @@ describe('Admin Booking API', () => {
   let clientUserId: string;
 
   beforeEach(async () => {
-    await request(app).post('/api/test/reset');
     const { cookie } = await loginUser('admin@example.com', 'admin');
     adminCookie = cookie;
     const { user, cookie: cCookie } = await loginUser('client@example.com');
@@ -450,7 +448,6 @@ describe('Group Training Enrollment', () => {
   let clientCookie: string[];
 
   beforeEach(async () => {
-    await request(app).post('/api/test/reset');
     const { user, cookie } = await loginUser('client@example.com');
     clientCookie = cookie;
     assignDefaultPackage(user.id, 'personal');

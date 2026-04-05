@@ -83,7 +83,6 @@ describe('Admin Calendar API', () => {
   let adminCookie: string;
 
   beforeEach(async () => {
-    await request(app).post('/api/test/reset');
     adminCookie = await createAdminAndLogin();
   });
 

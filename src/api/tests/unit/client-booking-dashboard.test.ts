@@ -107,7 +107,6 @@ describe('Client Booking Dashboard API', () => {
   let clientUserId: string;
 
   beforeEach(async () => {
-    await request(app).post('/api/test/reset');
     const { user, cookie } = await loginUser('dashboard-client@example.com');
     clientCookie = cookie;
     clientUserId = user.id;
