@@ -187,7 +187,7 @@
       "type": "extension",
       "frd": "frd-booking.md",
       "name": "Admin Calendar & Management",
-      "status": "planned"
+      "status": "complete"
     },
     {
       "id": "ext-008",
@@ -253,7 +253,7 @@
       "status": "complete"
     }
   ],
-  "currentIncrement": "ext-006",
+  "currentIncrement": "ext-008",
   "increments": {
     "inc-1": {
       "status": "complete",
@@ -495,6 +495,23 @@
         "specs/features/client-booking-dashboard.feature",
         "src/api/tests/unit/client-booking-dashboard.test.ts"
       ]
+    },
+    "ext-006": {
+      "status": "complete",
+      "frds": [
+        "frd-booking.md"
+      ],
+      "modifiedFiles": [
+        "specs/features/admin-calendar.feature",
+        "tests/features/step-definitions/admin-calendar-steps.ts",
+        "src/api/tests/unit/admin-calendar.test.ts",
+        "src/api/tests/unit/booking.test.ts",
+        "src/api/tests/unit/packages.test.ts"
+      ],
+      "testFiles": [
+        "specs/features/admin-calendar.feature",
+        "src/api/tests/unit/admin-calendar.test.ts"
+      ]
     }
   },
   "humanGates": {
@@ -510,12 +527,13 @@
     "ext-012-gherkin-approved": true,
     "ext-013-gherkin-approved": true,
     "ext-014-gherkin-approved": true,
-    "ext-005-gherkin-approved": true
+    "ext-005-gherkin-approved": true,
+    "ext-006-gherkin-approved": true
   },
   "testsStatus": {
     "apiUnit": {
-      "total": 186,
-      "passed": 186,
+      "total": 194,
+      "passed": 194,
       "failed": 0
     },
     "webBuild": {
@@ -523,8 +541,8 @@
       "status": "green"
     },
     "cucumber": {
-      "total": 88,
-      "passed": 88,
+      "total": 97,
+      "passed": 97,
       "failed": 0
     },
     "e2e": {
@@ -539,5 +557,5 @@
     "booking",
     "packages"
   ],
-  "lastUpdated": "2026-04-05T07:44:45Z"
+  "lastUpdated": "2026-04-05T08:39:42Z"
 }

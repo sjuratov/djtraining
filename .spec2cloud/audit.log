@@ -112,3 +112,10 @@
 [2026-04-05T07:44:45Z] increment=ext-005 slice=web action=verified result=meine-termine-page-already-implemented cancel:working reschedule:cancel-rebook 24h-warning:working
 [2026-04-05T07:44:45Z] increment=ext-005 step=verification action=passed result=api:186/186 cucumber:88/88 playwright:114/114
 [2026-04-05T07:44:45Z] increment=ext-005 action=delivered result=done current-increment=ext-006
+[2026-04-05T08:39:42Z] gate=gherkin-generation increment=ext-006 scenarios=9 result=approved
+[2026-04-05T08:39:42Z] step=test-generation action=tests-generated increment=ext-006 files=specs/features/admin-calendar.feature,tests/features/step-definitions/admin-calendar-steps.ts,src/api/tests/unit/admin-calendar.test.ts result=red
+[2026-04-05T08:39:42Z] increment=ext-006 step=contracts action=reviewed result=no-change reason=existing-admin-api-covers-calendar
+[2026-04-05T08:39:42Z] increment=ext-006 slice=api action=verified result=api:194/194 admin-calendar:8/8 booking-reset-fix:cross-file-db-race-resolved
+[2026-04-05T08:39:42Z] increment=ext-006 slice=web action=verified result=admin-kalender-page-already-implemented calendar-view:working slot-crud:working booking-mgmt:working
+[2026-04-05T08:39:42Z] increment=ext-006 step=verification action=passed result=api:194/194 cucumber:97/97 playwright:114/114
+[2026-04-05T08:39:42Z] increment=ext-006 action=delivered result=done current-increment=ext-008

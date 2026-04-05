@@ -59,7 +59,7 @@ describe('Package Definitions (Admin)', () => {
   let clientCookie: string[];
 
   beforeEach(async () => {
-    const { cookie } = await loginUser('admin@example.com', 'admin');
+    await request(app).post('/api/test/reset');    const { cookie } = await loginUser('admin@example.com', 'admin');
     adminCookie = cookie;
     const { cookie: cCookie } = await loginUser('client@example.com');
     clientCookie = cCookie;
@@ -166,7 +166,7 @@ describe('Package Assignment', () => {
   let clientUserId: string;
 
   beforeEach(async () => {
-    const { cookie } = await loginUser('admin@example.com', 'admin');
+    await request(app).post('/api/test/reset');    const { cookie } = await loginUser('admin@example.com', 'admin');
     adminCookie = cookie;
     const { user } = await loginUser('client@example.com');
     clientUserId = user.id;
@@ -218,7 +218,7 @@ describe('Session Deduction', () => {
   let clientUserId: string;
 
   beforeEach(async () => {
-    const { cookie } = await loginUser('admin@example.com', 'admin');
+    await request(app).post('/api/test/reset');    const { cookie } = await loginUser('admin@example.com', 'admin');
     adminCookie = cookie;
     const { user, cookie: cCookie } = await loginUser('client@example.com');
     clientCookie = cCookie;
@@ -387,7 +387,7 @@ describe('Client API', () => {
   let clientUserId: string;
 
   beforeEach(async () => {
-    const { user, cookie } = await loginUser('client@example.com');
+    await request(app).post('/api/test/reset');    const { user, cookie } = await loginUser('client@example.com');
     clientCookie = cookie;
     clientUserId = user.id;
   });
@@ -439,7 +439,7 @@ describe('Admin Adjustment', () => {
   let clientUserId: string;
 
   beforeEach(async () => {
-    const { cookie } = await loginUser('admin@example.com', 'admin');
+    await request(app).post('/api/test/reset');    const { cookie } = await loginUser('admin@example.com', 'admin');
     adminCookie = cookie;
     const { user } = await loginUser('client@example.com');
     clientUserId = user.id;
@@ -499,7 +499,7 @@ describe('Overview', () => {
   let clientUserId: string;
 
   beforeEach(async () => {
-    const { cookie } = await loginUser('admin@example.com', 'admin');
+    await request(app).post('/api/test/reset');    const { cookie } = await loginUser('admin@example.com', 'admin');
     adminCookie = cookie;
     const { user } = await loginUser('client@example.com');
     clientUserId = user.id;
