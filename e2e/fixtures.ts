@@ -5,8 +5,8 @@ export const test = base.extend({
   page: async ({ page }, use) => {
     // Reset the user store before each test for isolation
     const apiUrl = process.env.PLAYWRIGHT_BASE_URL
-      ? new URL(process.env.PLAYWRIGHT_BASE_URL).origin.replace(':3000', ':5001')
-      : 'http://localhost:5001';
+      ? new URL(process.env.PLAYWRIGHT_BASE_URL).origin.replace(':3101', ':5101')
+      : 'http://localhost:5101';
     await page.request.post(`${apiUrl}/api/test/reset`);
     await use(page);
   },

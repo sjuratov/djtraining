@@ -1,0 +1,82 @@
+feature: local-orchestration
+version: "1.0"
+basePath: /
+
+endpoints:
+  - path: /health
+    method: GET
+    description: API health endpoint used by local tooling and readiness checks on the rebased API base URL.
+    auth: none
+    responses:
+      200:
+        description: API is reachable and healthy
+        body:
+          type: object
+          properties:
+            status:
+              type: string
+              enum: [healthy]
+            timestamp:
+              type: string
+              format: date-time
+
+  - path: /api/contact
+    method: POST
+    description: Contact form submission from the web runtime using the configured API base URL.
+    auth: none
+    request:
+      body:
+        type: object
+        required: [name, email, message]
+        properties:
+          name:
+            type: string
+            maxLength: 100
+          email:
+            type: string
+            format: email
+          phone:
+            type: string
+          message:
+            type: string
+            maxLength: 2000
+    responses:
+      200:
+        description: Contact message accepted
+        body:
+          type: object
+          properties:
+            success:
+              type: boolean
+            message:
+              type: string
+      400:
+        description: Validation error for missing or malformed contact fields
+        body:
+          type: object
+          properties:
+            error:
+              type: string
+
+  - path: /api/auth/google/callback
+    method: GET
+    description: Google OAuth callback redirect whose fallback target depends on the configured local app URL.
+    auth: none
+    request:
+      query:
+        type: object
+        properties:
+          code:
+            type: string
+          state:
+            type: string
+    responses:
+      302:
+        description: Redirects the browser back to the login flow using the configured app URL
+      500:
+        description: Upstream Google token or profile exchange fails unexpectedly
+        body:
+          type: object
+          properties:
+            error:
+              type: string

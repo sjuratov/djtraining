@@ -16,10 +16,30 @@ const getSecret = (): string => {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+function shouldUseSecureCookies(req: { protocol?: string; get?: (name: string) => string | undefined }): boolean {
+  if (process.env.NODE_ENV === 'test') {
+    return true;
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    return true;
+  }
+
+  const appUrl = process.env.APP_URL;
+  const apiUrl = process.env.API_URL;
+  if (appUrl?.startsWith('https://') || apiUrl?.startsWith('https://')) {
+    return true;
+  }
+
+  const forwardedProto = req.get?.('x-forwarded-proto');
+  return req.protocol === 'https' || forwardedProto === 'https';
+}
+
 function setAuthCookie(res: any, token: string) {
+  const secure = shouldUseSecureCookies(res.req ?? {});
   res.cookie('token', token, {
     httpOnly: true,
-    secure: true,
+    secure,
     sameSite: 'strict',
     path: '/',
     maxAge: 86400 * 1000,
@@ -139,7 +159,12 @@ export function mapAuthEndpoints(app: Express): void {
     if (!clientId) { res.status(500).json({ error: 'Google OAuth not configured' }); return; }
 
     const state = crypto.randomUUID();
-    res.cookie('oauth_state', state, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 5 * 60 * 1000 });
+    res.cookie('oauth_state', state, {
+      httpOnly: true,
+      secure: shouldUseSecureCookies(req),
+      sameSite: 'lax',
+      maxAge: 5 * 60 * 1000,
+    });
 
     const apiBaseUrl = process.env.API_URL || `${req.protocol}://${req.get('host')}`;
     const redirectUri = encodeURIComponent(`${apiBaseUrl}/api/auth/google/callback`);
@@ -152,7 +177,7 @@ export function mapAuthEndpoints(app: Express): void {
   // GOOGLE OAUTH - callback
   app.get('/api/auth/google/callback', async (req, res) => {
     const { code, state } = req.query;
-    const frontendUrl = process.env.APP_URL || 'http://localhost:3001';
+    const frontendUrl = process.env.APP_URL || 'http://localhost:3101';
     const expectedState = req.cookies?.oauth_state;
 
     if (!state || !expectedState || state !== expectedState) {
@@ -235,8 +260,14 @@ export function mapAuthEndpoints(app: Express): void {
   });
 
   // LOGOUT
-  app.post('/api/auth/logout', (_req, res) => {
-    res.cookie('token', '', { httpOnly: true, secure: true, sameSite: 'strict', path: '/', maxAge: 0 });
+  app.post('/api/auth/logout', (req, res) => {
+    res.cookie('token', '', {
+      httpOnly: true,
+      secure: shouldUseSecureCookies(req),
+      sameSite: 'strict',
+      path: '/',
+      maxAge: 0,
+    });
     res.status(200).json({ message: 'Abmeldung erfolgreich' });
   });
 

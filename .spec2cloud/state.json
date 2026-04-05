@@ -1,6 +1,6 @@
 {
   "mode": "greenfield",
-  "currentPhase": "implementation-complete",
+  "currentPhase": "implementation",
   "productDiscovery": {
     "specRefinement": {
       "status": "complete"
@@ -38,6 +38,36 @@
     },
     "frdGenerator": {
       "status": "complete"
+    }
+  },
+  "contracts": {
+    "api": {
+      "local-orchestration": {
+        "status": "done",
+        "specFile": "specs/contracts/api/local-orchestration.yaml"
+      },
+      "aspire-local-orchestration": {
+        "status": "done",
+        "specFile": "specs/contracts/api/aspire-local-orchestration.yaml"
+      }
+    },
+    "sharedTypes": {
+      "local-orchestration": {
+        "status": "done",
+        "outputFiles": [
+          "src/shared/types/local-orchestration.ts"
+        ]
+      },
+      "aspire-local-orchestration": {
+        "status": "done",
+        "outputFiles": [
+          "src/shared/types/aspire-local-orchestration.ts"
+        ]
+      }
+    },
+    "infra": {
+      "status": "done",
+      "specFile": "specs/contracts/infra/resources.yaml"
     }
   },
   "activePaths": [
@@ -193,9 +223,37 @@
       "frd": "frd-package-reminders.md",
       "name": "Package Expiry Reminders and Grace Handling",
       "status": "complete"
+    },
+    {
+      "id": "ext-pre-003",
+      "type": "extension",
+      "frd": "frd-local-orchestration.md",
+      "name": "Local Runtime Config Rebase",
+      "status": "complete"
+    },
+    {
+      "id": "ext-012",
+      "type": "extension",
+      "frd": "frd-local-orchestration.md",
+      "name": "Aspire Local Orchestration and OTLP Endpoint",
+      "status": "complete"
+    },
+    {
+      "id": "ext-013",
+      "type": "extension",
+      "frd": "frd-observability.md",
+      "name": "API OpenTelemetry Signals",
+      "status": "complete"
+    },
+    {
+      "id": "ext-014",
+      "type": "extension",
+      "frd": "frd-observability.md",
+      "name": "Web OpenTelemetry Signals",
+      "status": "complete"
     }
   ],
-  "currentIncrement": "ext-011",
+  "currentIncrement": null,
   "increments": {
     "inc-1": {
       "status": "complete",
@@ -284,6 +342,72 @@
         "src/web/src/app/meine-termine/page.tsx"
       ]
     },
+    "ext-pre-003": {
+      "status": "complete",
+      "frds": [
+        "frd-local-orchestration.md"
+      ],
+      "modifiedFiles": [
+        "apphost.cs",
+        "src/api/src/app.ts",
+        "src/api/src/config/env.ts",
+        "src/api/src/routes/auth.ts",
+        "src/api/tests/unit/local-runtime-config.test.ts",
+        "src/web/next.config.ts",
+        "src/web/package.json",
+        "src/web/src/app/components/Header.tsx",
+        "src/web/src/app/globals.css",
+        "src/web/src/app/kontakt/page.tsx",
+        "src/web/src/app/layout.tsx",
+        "tests/features/step-definitions/auth-admin-ui-steps.ts",
+        "tests/features/step-definitions/profile-steps.ts",
+        "tests/features/step-definitions/public-pages-steps.ts",
+        "tests/features/support/hooks.ts",
+        "tests/features/support/world.ts"
+      ]
+    },
+    "ext-012": {
+      "status": "complete",
+      "frds": [
+        "frd-local-orchestration.md",
+        "frd-observability.md"
+      ],
+      "modifiedFiles": [
+        "apphost.cs",
+        "package.json",
+        "src/api/src/routes/auth.ts",
+        "specs/features/aspire-local-orchestration.feature",
+        "specs/contracts/api/aspire-local-orchestration.yaml",
+        "src/api/tests/unit/aspire-local-orchestration.test.ts",
+        "src/shared/types/aspire-local-orchestration.ts",
+        "specs/contracts/infra/resources.yaml",
+        "tests/features/step-definitions/public-pages-steps.ts",
+        "e2e/playwright.config.ts"
+      ],
+      "testFiles": [
+        "specs/features/aspire-local-orchestration.feature",
+        "src/api/tests/unit/aspire-local-orchestration.test.ts"
+      ]
+    },
+    "ext-013": {
+      "status": "complete",
+      "frds": [
+        "frd-observability.md"
+      ],
+      "modifiedFiles": [
+        "src/api/package.json",
+        "src/api/src/app.ts",
+        "src/api/src/index.ts",
+        "src/api/src/logger.ts",
+        "src/api/src/telemetry.ts",
+        "tests/features/step-definitions/api-observability-steps.ts"
+      ],
+      "testFiles": [
+        "specs/features/api-observability.feature",
+        "src/api/tests/unit/api-observability.test.ts",
+        "src/api/tests/integration/api-observability.test.ts"
+      ]
+    },
     "bugfix-profile-null-select": {
       "type": "bugfix",
       "frd": "frd-auth.md",
@@ -317,6 +441,45 @@
         "src/api/src/index.ts"
       ],
       "completedAt": "2026-04-03T16:55:57Z"
+    },
+    "bugfix-logout-dropdown": {
+      "type": "bugfix",
+      "frd": "frd-auth.md",
+      "description": "Keep logout inside the header user menu and remove the redundant profile-page logout control",
+      "status": "done",
+      "testFile": "e2e/auth.spec.ts",
+      "fixedFiles": [
+        "src/web/src/app/components/Header.tsx",
+        "src/web/src/app/profile/page.tsx",
+        "e2e/auth.spec.ts",
+        "e2e/profile.spec.ts"
+      ],
+      "completedAt": "2026-04-04T15:25:00Z"
+    },
+    "bugfix-profile-save-success": {
+      "type": "bugfix",
+      "frd": "frd-auth.md",
+      "description": "Normalize optional profile fields before save so profile updates succeed and show confirmation",
+      "status": "done",
+      "testFile": "e2e/profile.spec.ts",
+      "fixedFiles": [
+        "src/web/src/app/profile/page.tsx"
+      ],
+      "completedAt": "2026-04-04T17:27:54Z"
+    },
+    "ext-014": {
+      "status": "complete",
+      "frds": [
+        "frd-observability.md"
+      ],
+      "modifiedFiles": [
+        "src/web/package.json",
+        "src/web/instrumentation.ts",
+        "tests/features/step-definitions/web-observability-steps.ts"
+      ],
+      "testFiles": [
+        "specs/features/web-observability.feature"
+      ]
     }
   },
   "humanGates": {
@@ -328,21 +491,29 @@
     "brownfield-specs-approved": false,
     "paths-selected": false,
     "assessment-approved": false,
-    "plan-approved": true
+    "plan-approved": true,
+    "ext-012-gherkin-approved": true,
+    "ext-013-gherkin-approved": true,
+    "ext-014-gherkin-approved": true
   },
   "testsStatus": {
     "apiUnit": {
-      "total": 161,
-      "passed": 161,
+      "total": 177,
+      "passed": 177,
       "failed": 0
     },
     "webBuild": {
       "routes": 24,
       "status": "green"
     },
+    "cucumber": {
+      "total": 78,
+      "passed": 78,
+      "failed": 0
+    },
     "e2e": {
-      "total": 111,
-      "passed": 111,
+      "total": 114,
+      "passed": 114,
       "failed": 0
     }
   },
@@ -352,5 +523,5 @@
     "booking",
     "packages"
   ],
-  "lastUpdated": "2026-04-03T16:55:57Z"
+  "lastUpdated": "2026-04-05T07:04:40Z"
 }

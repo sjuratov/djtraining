@@ -7,6 +7,18 @@ interface LoadApiEnvironmentOptions {
   env?: NodeJS.ProcessEnv;
 }
 
+function assertValidUrlEnv(name: string, value: string | undefined): void {
+  if (!value) {
+    return;
+  }
+
+  try {
+    new URL(value);
+  } catch {
+    throw new Error(`Invalid ${name} value: ${value}`);
+  }
+}
+
 function findEnvFile(startDir: string): string | undefined {
   let currentDir = path.resolve(startDir);
 
@@ -40,6 +52,9 @@ export function loadApiEnvironment(options: LoadApiEnvironmentOptions = {}): str
       env[key] = value;
     }
   }
+
+  assertValidUrlEnv('APP_URL', env.APP_URL);
+  assertValidUrlEnv('API_URL', env.API_URL);
 
   return envPath;
 }

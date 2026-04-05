@@ -37,13 +37,17 @@ export default function Header() {
   const router = useRouter();
 
   useEffect(() => {
+    setUserMenuOpen(false);
+
     fetch('/api/auth/me')
       .then((res) => {
         if (res.ok) return res.json();
         return null;
       })
       .then((data) => {
-        if (data) setUser(data);
+        if (data) {
+          setUser(data);
+        }
       })
       .catch(() => setUser(null));
   }, [pathname]);

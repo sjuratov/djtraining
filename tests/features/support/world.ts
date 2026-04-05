@@ -17,8 +17,8 @@ export class CustomWorld extends World {
 
   response: { status: number; body: any; headers: Headers } | null = null;
   cookies: string[] = [];
-  apiBaseUrl = 'http://localhost:5001';
-  webBaseUrl = 'http://localhost:3000';
+  apiBaseUrl = 'http://localhost:5101';
+  webBaseUrl = 'http://localhost:3101';
   storedPasswords: Record<string, string> = {};
   tamperedJwt: string | null = null;
 
@@ -64,8 +64,22 @@ export class CustomWorld extends World {
   }
 
   async closeBrowser() {
-    await this.context?.close();
-    await this.browser?.close();
+    const closeWithTimeout = async (action: Promise<void> | undefined) => {
+      if (!action) {
+        return;
+      }
+
+      await Promise.race([
+        action,
+        new Promise<void>((resolve) => {
+          setTimeout(resolve, 5_000);
+        }),
+      ]);
+    };
+
+    await closeWithTimeout(this.page?.close());
+    await closeWithTimeout(this.context?.close());
+    await closeWithTimeout(this.browser?.close());
   }
 
   get screenshotDir(): string {

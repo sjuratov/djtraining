@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import pinoHttp from 'pino-http';
 import { logger } from './logger.js';
+import { createApiTelemetryMiddleware } from './telemetry.js';
 import { mapHealthEndpoints } from './routes/health.js';
 import { mapChatEndpoints } from './routes/chat.js';
 import { mapAuthEndpoints } from './routes/auth.js';
@@ -68,24 +69,35 @@ export function createApp(): express.Express {
     },
   }));
   const allowedOrigins = [
-    process.env.APP_URL || 'http://localhost:3001',
-    'http://localhost:3001',
-    'http://localhost:3000',
+    process.env.APP_URL || 'http://localhost:3101',
+    'http://localhost:3101',
+    'http://127.0.0.1:3101',
   ].filter(Boolean);
 
   app.use(cors({
     origin: (origin, callback) => {
       // Allow requests with no origin (same-origin, curl, Postman)
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin) {
         callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
+        return;
       }
+
+      try {
+        if (allowedOrigins.includes(origin) || isLoopbackHostname(new URL(origin).hostname)) {
+          callback(null, true);
+          return;
+        }
+      } catch {
+        // Fall through to explicit rejection below.
+      }
+
+      callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
   }));
   app.use(express.json());
   app.use(cookieParser());
+  app.use(createApiTelemetryMiddleware());
   app.use(pinoHttp({ logger }));
 
   // Routes

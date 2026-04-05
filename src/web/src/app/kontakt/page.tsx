@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
 
 export default function KontaktPage() {
+  const localApiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5101';
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -17,8 +18,8 @@ export default function KontaktPage() {
     setStatus('sending');
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
-      const res = await fetch(`${apiUrl}/api/contact`, {
+      const contactEndpoint = new URL('/api/contact', localApiBaseUrl).pathname;
+      const res = await fetch(contactEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),

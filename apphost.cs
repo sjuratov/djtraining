@@ -1,25 +1,44 @@
 #:sdk Aspire.AppHost.Sdk@13.2.0
 #:package Aspire.Hosting.JavaScript@13.2.0
-#:package Aspire.Hosting.Python@13.2.0
-
 var builder = DistributedApplication.CreateBuilder(args);
+
+var otel = builder.AddContainer("otel", "mcr.microsoft.com/dotnet/aspire-dashboard", "latest")
+    .WithEnvironment("ASPIRE_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS", "true")
+    .WithEnvironment("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL", "http://0.0.0.0:18889")
+    .WithEnvironment("DOTNET_DASHBOARD_OTLP_HTTP_ENDPOINT_URL", "http://0.0.0.0:18890")
+    .WithHttpEndpoint(name: "dashboard", port: 18898, targetPort: 18888)
+    .WithEndpoint(name: "otlp-grpc", port: 4319, targetPort: 18889)
+    .WithHttpEndpoint(name: "otlp-http", port: 4320, targetPort: 18890)
+    .WithExternalHttpEndpoints();
 
 // API — Express.js / TypeScript backend
 var api = builder.AddJavaScriptApp("api", "./src/api")
     .WithEnvironment("JWT_SECRET", "aspire-local-dev-jwt-secret")
-    .WithHttpEndpoint(port: 5001, env: "PORT")
+    .WithEnvironment("APP_URL", "http://localhost:3101")
+    .WithEnvironment("API_URL", "http://localhost:5101")
+    .WithEnvironment("ENABLE_TEST_ROUTES", "true")
+    .WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4320")
+    .WithEnvironment("OTEL_EXPORTER_OTLP_PROTOCOL", "http/protobuf")
+    .WithEnvironment("OTEL_SERVICE_NAME", "dj-training-api")
+    .WithHttpEndpoint(port: 5101, env: "PORT")
     .WithHttpHealthCheck("/health");
 
 // Web — Next.js frontend
 builder.AddJavaScriptApp("web", "./src/web")
+    .WithBuildScript("build")
+    .WithRunScript("start")
+    .WithEnvironment("NEXT_PUBLIC_API_URL", "http://localhost:5101")
+    .WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4320")
+    .WithEnvironment("OTEL_EXPORTER_OTLP_PROTOCOL", "http/protobuf")
+    .WithEnvironment("OTEL_SERVICE_NAME", "dj-training-web")
+    .WithHttpEndpoint(port: 3101, env: "PORT")
     .WithExternalHttpEndpoints()
     .WithReference(api)
     .WaitFor(api);
 
-// Docs — MkDocs documentation server
-builder.AddPythonExecutable("docs", ".", "mkdocs")
-    .WithArgs("serve", "--dev-addr", "0.0.0.0:8000")
-    .WithHttpEndpoint(port: 8000)
+// Docs — static docs container built from the repo Dockerfile
+builder.AddDockerfile("docs", ".", "docs.Dockerfile")
+    .WithHttpEndpoint(port: 8100, targetPort: 8080)
     .WithExternalHttpEndpoints();
 
 builder.Build().Run();

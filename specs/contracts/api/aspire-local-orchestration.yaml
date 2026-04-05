@@ -1,0 +1,85 @@
+feature: aspire-local-orchestration
+version: "1.0"
+basePath: /
+
+endpoints:
+  - path: /health
+    method: GET
+    description: API health endpoint used by Aspire startup and local regression checks while the DJ Training stack runs on rebased local ports.
+    auth: none
+    responses:
+      200:
+        description: API is reachable and healthy
+        body:
+          type: object
+          properties:
+            status:
+              type: string
+              enum: [healthy]
+            timestamp:
+              type: string
+              format: date-time
+
+  - path: /
+    method: GET
+    description: Web root document served through the Aspire-orchestrated local frontend for readiness and smoke checks.
+    auth: none
+    responses:
+      200:
+        description: Web app root is reachable
+        body:
+          type: string
+
+  - path: /v1/traces
+    method: POST
+    description: Local OTLP HTTP endpoint that accepts trace export payloads from DJ Training services via environment-driven exporter wiring.
+    auth: none
+    request:
+      body:
+        type: object
+        properties:
+          resourceSpans:
+            type: array
+            items:
+              type: object
+    responses:
+      200:
+        description: Trace payload accepted by the local collector
+      202:
+        description: Trace payload accepted for asynchronous processing
+
+  - path: /v1/metrics
+    method: POST
+    description: Local OTLP HTTP endpoint that accepts metric export payloads from DJ Training services via environment-driven exporter wiring.
+    auth: none
+    request:
+      body:
+        type: object
+        properties:
+          resourceMetrics:
+            type: array
+            items:
+              type: object
+    responses:
+      200:
+        description: Metric payload accepted by the local collector
+      202:
+        description: Metric payload accepted for asynchronous processing
+
+  - path: /v1/logs
+    method: POST
+    description: Local OTLP HTTP endpoint that accepts structured log export payloads from DJ Training services via environment-driven exporter wiring.
+    auth: none
+    request:
+      body:
+        type: object
+        properties:
+          resourceLogs:
+            type: array
+            items:
+              type: object
+    responses:
+      200:
+        description: Log payload accepted by the local collector
+      202:
+        description: Log payload accepted for asynchronous processing

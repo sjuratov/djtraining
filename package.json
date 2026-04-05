@@ -9,9 +9,9 @@
   "scripts": {
     "dev": "cd src/web && npm run dev",
     "dev:api": "cd src/api && npm run dev",
-    "dev:docs": "mkdocs serve --dev-addr 0.0.0.0:8000",
+    "dev:docs": "mkdocs serve --dev-addr 0.0.0.0:8100",
     "dev:all": "npx concurrently \"npm run dev:api\" \"npm run dev\" \"npm run dev:docs\"",
-    "dev:aspire": "aspire start",
+    "dev:aspire": "aspire run",
     "build": "cd src/web && npm run build",
     "build:api": "cd src/api && npm run build",
     "build:all": "npm run build:api && npm run build",
@@ -25,7 +25,14 @@
     "docs:serve": "npx mkdocs serve",
     "docs:build": "npx mkdocs build"
   },
-  "keywords": ["spec2cloud", "ai-agents", "azure", "nextjs", "express", "template"],
+  "keywords": [
+    "spec2cloud",
+    "ai-agents",
+    "azure",
+    "nextjs",
+    "express",
+    "template"
+  ],
   "author": "spec2cloud contributors",
   "license": "ISC",
   "repository": {
@@ -38,7 +45,9 @@
     "@cucumber/gherkin": "^29.0.0",
     "@cucumber/messages": "^26.0.0",
     "@playwright/test": "^1.58.2",
+    "@tailwindcss/postcss": "^4.2.2",
     "concurrently": "^9.1.0",
+    "tailwindcss": "^4.2.2",
     "ts-node": "^10.9.2"
   }
 }

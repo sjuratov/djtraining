@@ -156,7 +156,7 @@ Then('I should see the text {string}', async function (this: CustomWorld, text: 
 });
 
 Then('I should see the heading {string}', async function (this: CustomWorld, heading: string) {
-  const locator = this.page.getByRole('heading', { name: heading });
+  const locator = this.page.getByRole('heading', { name: heading }).first();
   await locator.waitFor({ timeout: 5000 });
   assert.ok(await locator.isVisible(), `Expected to see heading "${heading}"`);
 });
@@ -221,5 +221,4 @@ Then('I should see a {string} link', async function (this: CustomWorld, linkText
   await link.waitFor({ timeout: 5000 });
   assert.ok(await link.isVisible(), `Expected to see "${linkText}" link`);
 });
-
 

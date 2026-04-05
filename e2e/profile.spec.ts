@@ -5,17 +5,21 @@ function uniqueEmail() {
 }
 
 async function loginUser(page: Page, email: string, password: string) {
-  await page.request.post('/api/auth/login', { data: { email, password } });
+  await page.goto('/login');
+  await page.getByLabel('E-Mail').fill(email);
+  await page.getByLabel('Passwort').fill(password);
+  await page.getByRole('button', { name: 'Anmelden' }).click();
+  await page.waitForURL('/');
 }
 
 async function createVerifiedUser(page: Page, email: string, password: string, displayName = 'Test User') {
-  await page.request.post('http://localhost:5001/api/test/create-user', {
+  await page.request.post('http://localhost:5101/api/test/create-user', {
     data: { email, password, displayName },
   });
 }
 
 test.beforeEach(async ({ context }) => {
-  await context.request.post('http://localhost:5001/api/test/reset');
+  await context.request.post('http://localhost:5101/api/test/reset');
   await context.clearCookies();
 });
 
@@ -48,6 +52,7 @@ test.describe('Profile Page', () => {
     await loginUser(page, email, password);
 
     await page.goto('/profile');
+    await page.getByTestId('user-menu-button').click();
     await page.getByRole('button', { name: /Abmelden/i }).click();
 
     await expect(page).toHaveURL(/\/login/);
@@ -121,8 +126,8 @@ test.describe('Profile Page', () => {
 
 test.describe('Profile Form', () => {
   test.beforeEach(async ({ page, request }) => {
-    await request.post('http://localhost:5001/api/test/reset');
-    await request.post('http://localhost:5001/api/test/create-user', {
+    await request.post('http://localhost:5101/api/test/reset');
+    await request.post('http://localhost:5101/api/test/create-user', {
       data: { email: 'profil@test.de', displayName: 'Test Profil', password: 'test1234' },
     });
     await page.goto('/login');
@@ -138,6 +143,14 @@ test.describe('Profile Form', () => {
     await expect(page.getByTestId('tab-personal')).toBeVisible();
     await expect(page.getByTestId('tab-fitness')).toBeVisible();
     await expect(page.getByTestId('tab-membership')).toBeVisible();
+  });
+
+  test('shows a success confirmation after saving personal profile changes', async ({ page }) => {
+    // Validates: specs/frd-auth.md, Profile Management AC
+    await page.getByTestId('tab-personal').click();
+    await page.getByTestId('field-firstName').fill('Anna');
+    await page.getByTestId('save-profile').click();
+    await expect(page.getByTestId('save-success')).toBeVisible();
   });
 
   test('can fill and save personal data', async ({ page }) => {

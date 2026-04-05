@@ -8,29 +8,30 @@ Feature: Testimonials (Kundenstimmen)
     Then I should see the heading "Kundenstimmen"
     And I should see intro text about client experiences
 
-  Scenario: All 17 testimonials are displayed
+  Scenario: All 18 testimonials are displayed
     Given I am on the testimonials page
-    Then I should see exactly 17 testimonial cards
+    Then I should see exactly 18 testimonial cards
 
   Scenario: Each testimonial displays the client name
     Given I am on the testimonials page
-    Then I should see testimonial from "Sandra M."
-    And I should see testimonial from "Thomas K."
-    And I should see testimonial from "Monika W."
-    And I should see testimonial from "Peter S."
-    And I should see testimonial from "Claudia B."
-    And I should see testimonial from "Marco R."
-    And I should see testimonial from "Sabine L."
-    And I should see testimonial from "Andreas H."
-    And I should see testimonial from "Nicole F."
-    And I should see testimonial from "Reto D."
-    And I should see testimonial from "Karin P."
-    And I should see testimonial from "Stefan G."
-    And I should see testimonial from "Lisa M."
-    And I should see testimonial from "Daniel V."
-    And I should see testimonial from "Martina J."
-    And I should see testimonial from "Urs B."
-    And I should see testimonial from "Franziska E."
+    Then I should see testimonial from "Monika Huber"
+    And I should see testimonial from "Andrea Gut"
+    And I should see testimonial from "Marina Hunziker"
+    And I should see testimonial from "Martina Lindörfer-Karnafelova"
+    And I should see testimonial from "Vecaribica"
+    And I should see testimonial from "Martina Stratmann"
+    And I should see testimonial from "Michael Müller"
+    And I should see testimonial from "Sabine Do-Thuong"
+    And I should see testimonial from "Myophysio"
+    And I should see testimonial from "F.S."
+    And I should see testimonial from "Erika K."
+    And I should see testimonial from "Sukey"
+    And I should see testimonial from "Nicole Tellenbach"
+    And I should see testimonial from "Regina Lanner"
+    And I should see testimonial from "Stefanie"
+    And I should see testimonial from "BR"
+    And I should see testimonial from "Juliana"
+    And I should see testimonial from "Paula Cruz"
 
   Scenario: Testimonials are in a responsive grid layout
     Given I am on the testimonials page

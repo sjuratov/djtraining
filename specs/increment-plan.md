@@ -1005,3 +1005,141 @@ ext-pre-001 (Database)
 - **Dependencies:** ext-009
 - **Rollback Plan:** Remove grace workflow and revert to expiry-only package handling
 - **Risk:** Medium — adds business-state transitions that affect booking eligibility
+
+---
+
+# Extension: Observability & Local Aspire Orchestration
+
+## Overview
+
+This extension adds a dedicated local Aspire orchestration path and vendor-neutral OpenTelemetry coverage for the DJ Training web and API applications. It rebases local runtime defaults away from the existing `3001/5001` assumptions, introduces a local OTLP endpoint that can coexist with other Aspire apps, and prepares the same instrumentation model for a future Azure OTLP destination.
+
+**FRDs:** frd-local-orchestration.md, frd-observability.md
+
+**Dependency chain:**
+```
+ext-pre-003 (Local Runtime Rebase)
+    → ext-012 (Aspire Local Orchestration + OTLP Endpoint)
+        → ext-013 (API Observability)
+            → ext-014 (Web Observability)
+```
+
+---
+
+## ext-pre-003: Local Runtime Config Rebase
+
+- **Type:** extension-prerequisite
+- **FRD:** frd-local-orchestration.md
+- **Scope:** Rebase the app's shared local defaults and test harness assumptions from `3001/5001` to `3101/5101`, move docs off `8000`, and centralize runtime base URL configuration so Aspire and standalone local development use the same contract.
+- **Acceptance Criteria:**
+  - [ ] Shared local defaults use `http://localhost:3101` for web and `http://localhost:5101` for API
+  - [ ] Docs local default uses a non-conflicting higher port instead of `8000`
+  - [ ] Runtime configuration for `APP_URL`, `API_URL`, `NEXT_PUBLIC_API_URL`, `WEB_URL`, and related test defaults is aligned to the rebased ports
+  - [ ] Standalone `npm run dev` and `npm run dev:api` still work with the rebased defaults
+  - [ ] Existing auth, profile, booking, and admin flows behave the same after the port/config rebase
+- **Test Strategy:**
+  - Unit/config tests for env-backed base URL resolution where applicable
+  - Web build and API build with rebased defaults
+  - Regression: e2e and Cucumber harness defaults updated to the new local ports
+  - Regression: existing auth/booking smoke flows still pass unchanged
+- **Gherkin Deltas:**
+  - Regression: existing auth, booking, admin, and profile scenarios must still pass unchanged under the rebased local endpoints
+  - No new end-user behavior; this is a runtime/configuration prerequisite
+- **Integration Points:**
+  - Modified API defaults in `src/api/src/index.ts`, `src/api/src/app.ts`, auth/email flows, and related tests
+  - Modified web defaults in `src/web/next.config.ts`, hooks, and API consumers
+  - Modified e2e/Cucumber defaults and local docs dev wiring
+- **Dependencies:** none
+- **Rollback Plan:** Restore prior localhost port defaults and test harness wiring
+- **Risk:** Medium — touches many runtime/test entry points but should not change product behavior
+
+---
+
+## ext-012: Aspire Local Orchestration and OTLP Endpoint
+
+- **Type:** extension
+- **FRD:** frd-local-orchestration.md
+- **Scope:** Extend the existing Aspire app host so it orchestrates web, API, docs, and a dedicated local OTLP endpoint on non-conflicting higher ports through interactive `aspire run`, while injecting consistent service URLs and telemetry exporter configuration into the running application.
+- **Acceptance Criteria:**
+  - [ ] `aspire run` launches web, API, docs, and the local OTLP endpoint together
+  - [ ] Stopping `aspire run` with `Ctrl+C` shuts down the local stack cleanly
+  - [ ] Aspire exposes the rebased web and API endpoints from `ext-pre-003`
+  - [ ] Aspire injects consistent base URL and OTLP exporter settings into the application services
+  - [ ] The local OTLP endpoint uses dedicated non-default ports so it can run alongside other Aspire apps
+  - [ ] Developers can inspect service health and local telemetry without editing source-controlled configuration files
+- **Test Strategy:**
+  - Build-check for the Aspire app host and participating services
+  - Startup smoke: `aspire run` + health checks for web/API + OTLP resource availability
+  - Regression: standalone local dev commands still function outside Aspire
+  - Regression: existing web/API routes remain reachable through the rebased local endpoints
+- **Gherkin Deltas:**
+  - New: `Scenario: Developer runs the DJ Training stack with Aspire and receives healthy web and API endpoints`
+  - New: `Scenario: Local OTLP endpoint is available for application telemetry`
+  - Regression: existing user-facing scenarios still pass unchanged when the app is started through Aspire
+- **Integration Points:**
+  - Modified `apphost.cs` and Aspire configuration
+  - Injected service references/environment values for web, API, docs, and telemetry
+  - Coordinated with local docs and test harness startup expectations
+- **Dependencies:** ext-pre-003
+- **Rollback Plan:** Revert Aspire host changes and fall back to standalone web/API startup only
+- **Risk:** Medium — changes orchestration topology and local resource wiring
+
+---
+
+## ext-013: API OpenTelemetry Signals
+
+- **Type:** extension
+- **FRD:** frd-observability.md
+- **Scope:** Instrument the Express API with OTLP-based traces, metrics, and correlated structured logs so incoming requests and API errors are observable locally under Aspire and later redirectable to Azure via configuration.
+- **Acceptance Criteria:**
+  - [ ] API exports inbound HTTP traces to the configured OTLP endpoint
+  - [ ] API exports request/error/latency metrics to the configured OTLP endpoint
+  - [ ] API logs include correlation data linking log entries to traces/spans where supported
+  - [ ] Telemetry failures do not block API startup or request handling
+  - [ ] Sensitive auth and verification data are excluded from exported telemetry attributes/logs
+- **Test Strategy:**
+  - Unit tests for telemetry config/bootstrap behavior
+  - API integration tests covering request instrumentation and fail-open behavior when collector is unavailable
+  - Local smoke: hit `/health` and one authenticated API path, then verify telemetry is emitted to the local OTLP endpoint
+  - Regression: existing API test suite and booking/auth flows remain green
+- **Gherkin Deltas:**
+  - New: `Scenario: API request emits correlated trace, metric, and log telemetry`
+  - New: `Scenario: API remains available when the telemetry collector is unavailable`
+  - Regression: existing auth, admin, scheduling, booking, and package scenarios must still pass unchanged
+- **Integration Points:**
+  - Modified API bootstrap/middleware wiring
+  - Modified API logger and request logging path
+  - Uses OTLP configuration supplied by `ext-012`
+- **Dependencies:** ext-012
+- **Rollback Plan:** Remove API telemetry bootstrap and restore prior logging-only runtime
+- **Risk:** Medium — cross-cutting runtime concern touching request lifecycle and logging
+
+---
+
+## ext-014: Web OpenTelemetry Signals
+
+- **Type:** extension
+- **FRD:** frd-observability.md
+- **Scope:** Instrument the Next.js web application with OTLP-based traces, metrics, and structured logs for server-side web execution plus selected client-side navigation/page telemetry, producing end-to-end observability across the DJ Training user journey.
+- **Acceptance Criteria:**
+  - [ ] Web exports meaningful server-side traces and metrics to the configured OTLP endpoint
+  - [ ] Web exports selected client-side navigation/page telemetry suitable for local inspection
+  - [ ] Web emits structured server-side logs with correlated context where available
+  - [ ] A local user journey can be followed across web and API telemetry
+  - [ ] Telemetry delivery failures do not block page rendering or API interaction
+- **Test Strategy:**
+  - Web build validation with telemetry enabled
+  - Component/integration coverage for telemetry bootstrap and config guards where applicable
+  - E2e/local smoke: load a page, navigate to an authenticated flow, and verify related web + API telemetry reaches the local OTLP endpoint
+  - Regression: existing web e2e scenarios continue to pass unchanged
+- **Gherkin Deltas:**
+  - New: `Scenario: Web page load and navigation emit correlated telemetry`
+  - New: `Scenario: End-to-end user journey links web telemetry to downstream API telemetry`
+  - Regression: existing public site, auth, profile, admin, scheduling, and booking scenarios must still pass unchanged
+- **Integration Points:**
+  - Modified Next.js runtime/bootstrap and selected client telemetry hooks
+  - Coordinated with existing API proxy/base URL configuration from `ext-pre-003`
+  - Builds on OTLP endpoint and API observability from `ext-012` and `ext-013`
+- **Dependencies:** ext-013
+- **Rollback Plan:** Remove web telemetry bootstrap and restore prior web runtime behavior
+- **Risk:** Medium — spans both server-side and browser-side execution paths

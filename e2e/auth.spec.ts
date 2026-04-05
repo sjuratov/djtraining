@@ -9,17 +9,21 @@ async function registerUser(page: Page, email: string, password: string, display
 }
 
 async function loginUser(page: Page, email: string, password: string) {
-  await page.request.post('/api/auth/login', { data: { email, password } });
+  await page.goto('/login');
+  await page.getByLabel('E-Mail').fill(email);
+  await page.getByLabel('Passwort').fill(password);
+  await page.getByRole('button', { name: 'Anmelden' }).click();
+  await page.waitForURL('/');
 }
 
 async function createVerifiedUser(page: Page, email: string, password: string, displayName = 'Test User') {
-  await page.request.post('http://localhost:5001/api/test/create-user', {
+  await page.request.post('http://localhost:5101/api/test/create-user', {
     data: { email, password, displayName },
   });
 }
 
 test.beforeEach(async ({ context }) => {
-  await context.request.post('http://localhost:5001/api/test/reset');
+  await context.request.post('http://localhost:5101/api/test/reset');
   await context.clearCookies();
 });
 
@@ -150,6 +154,23 @@ test.describe('Login', () => {
 });
 
 test.describe('Logout', () => {
+  test('should keep logout inside the user menu dropdown', async ({ page }) => {
+    // Validates: specs/frd-auth.md, Logout AC + Navigation Integration AC
+    const email = uniqueEmail();
+    const password = 'SecurePass123!';
+    await createVerifiedUser(page, email, password);
+    await loginUser(page, email, password);
+
+    const userMenuButton = page.getByTestId('user-menu-button');
+    const logoutAction = page.getByRole('button', { name: /^Abmelden$/ });
+    await expect(userMenuButton).toContainText('Test User');
+    await expect(userMenuButton).not.toContainText('Abmelden');
+    await expect(logoutAction).toHaveCount(0);
+
+    await userMenuButton.click();
+    await expect(logoutAction).toHaveCount(1);
+  });
+
   test('should logout and redirect to login', async ({ page }) => {
     const email = uniqueEmail();
     const password = 'SecurePass123!';
@@ -157,6 +178,7 @@ test.describe('Logout', () => {
     await loginUser(page, email, password);
 
     await page.goto('/profile');
+    await page.getByTestId('user-menu-button').click();
     await page.getByRole('button', { name: /Abmelden/i }).click();
 
     await expect(page).toHaveURL(/\/login/);
@@ -169,6 +191,7 @@ test.describe('Logout', () => {
     await loginUser(page, email, password);
 
     await page.goto('/profile');
+    await page.getByTestId('user-menu-button').click();
     await page.getByRole('button', { name: /Abmelden/i }).click();
     await expect(page).toHaveURL(/\/login/);
 

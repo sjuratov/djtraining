@@ -1,0 +1,107 @@
+version: "1.0"
+target: azure-container-apps
+
+resources:
+  - name: api
+    type: Microsoft.App/containerApps
+    description: Express.js API backend. ext-pre-003 rebased local runtime defaults; ext-012 adds environment-driven OTLP exporter wiring while keeping Azure deployment topology explicit.
+    sku: Consumption
+    scaling:
+      minReplicas: 1
+      maxReplicas: 3
+      rules:
+        - type: http
+          metadata:
+            concurrentRequests: "50"
+    resources:
+      cpu: "1.0"
+      memory: "2Gi"
+    ingress:
+      external: true
+      targetPort: 8080
+      cors:
+        allowedOrigins: ["https://{web-app-url}"]
+    env:
+      - name: NODE_ENV
+        value: production
+      - name: APP_URL
+        value: "https://{web-app-url}"
+      - name: API_URL
+        value: "https://{api-app-url}"
+      - name: JWT_SECRET
+        secretRef: jwt-secret
+      - name: OTEL_EXPORTER_OTLP_ENDPOINT
+        value: "http://{otel-resource-host}:4320"
+      - name: OTEL_EXPORTER_OTLP_PROTOCOL
+        value: "http/protobuf"
+      - name: OTEL_SERVICE_NAME
+        value: "dj-training-api"
+
+  - name: web
+    type: Microsoft.App/containerApps
+    description: Next.js frontend. ext-pre-003 preserves explicit API base URL wiring; ext-012 adds OTLP exporter wiring so the same app can target a local collector or future Azure endpoint by configuration.
+    sku: Consumption
+    scaling:
+      minReplicas: 1
+      maxReplicas: 3
+      rules:
+        - type: http
+          metadata:
+            concurrentRequests: "50"
+    resources:
+      cpu: "0.5"
+      memory: "1Gi"
+    ingress:
+      external: true
+      targetPort: 3000
+    env:
+      - name: NEXT_PUBLIC_API_URL
+        value: "https://{api-app-url}"
+      - name: OTEL_EXPORTER_OTLP_ENDPOINT
+        value: "http://{otel-resource-host}:4320"
+      - name: OTEL_EXPORTER_OTLP_PROTOCOL
+        value: "http/protobuf"
+      - name: OTEL_SERVICE_NAME
+        value: "dj-training-web"
+
+  - name: otel
+    type: Microsoft.App/containerApps
+    description: Internal OTLP collector/visualizer resource used by Aspire locally and replaceable by an Azure OTLP endpoint later without application code changes.
+    sku: Consumption
+    scaling:
+      minReplicas: 1
+      maxReplicas: 1
+    resources:
+      cpu: "0.5"
+      memory: "1Gi"
+    ingress:
+      external: false
+      targetPort: 4320
+    env:
+      - name: OTLP_GRPC_PORT
+        value: "4319"
+      - name: OTLP_HTTP_PORT
+        value: "4320"
+
+  - name: registry
+    type: Microsoft.ContainerRegistry/registries
+    description: Container image registry for API and web images
+    sku: Basic
+    justification: Basic tier remains sufficient because ext-012 adds a lightweight collector resource but no high-scale image-publishing requirements
+
+dependencies:
+  - from: api
+    to: registry
+    reason: API container images are stored in the registry
+  - from: web
+    to: registry
+    reason: Web container images are stored in the registry
+  - from: web
+    to: api
+    reason: Web runtime and build-time configuration call API endpoints through an explicit API base URL contract
+  - from: api
+    to: otel
+    reason: API exports telemetry through an environment-driven OTLP endpoint
+  - from: web
+    to: otel
+    reason: Web runtime exports telemetry through the same environment-driven OTLP endpoint

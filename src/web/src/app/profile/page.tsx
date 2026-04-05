@@ -145,13 +145,20 @@ export default function ProfilePage() {
     setSaveError(null);
 
     try {
+      const payload = {
+        ...profile,
+        birthDate: profile.birthDate === '' ? null : profile.birthDate,
+        gender: profile.gender === '' ? null : profile.gender,
+        trainingGoal: profile.trainingGoal === '' ? null : profile.trainingGoal,
+        experienceLevel: profile.experienceLevel === '' ? null : profile.experienceLevel,
+        trainingType: profile.trainingType === '' ? null : profile.trainingType,
+        sessionsPerWeek: profile.sessionsPerWeek === '' ? null : Number(profile.sessionsPerWeek),
+      };
+
       const res = await fetch('/api/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...profile,
-          sessionsPerWeek: profile.sessionsPerWeek === '' ? null : Number(profile.sessionsPerWeek),
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
@@ -223,12 +230,6 @@ export default function ProfilePage() {
           </div>
           <p className="text-gray-600">Mitglied seit {formatDate(user.createdAt)}</p>
         </div>
-        <button
-          onClick={handleLogout}
-          className="w-full rounded bg-gray-200 px-4 py-2 font-medium text-gray-800 hover:bg-gray-300"
-        >
-          Abmelden
-        </button>
       </div>
 
       {/* Profile form */}
