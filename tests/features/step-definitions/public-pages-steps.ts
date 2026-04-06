@@ -433,13 +433,13 @@ When('I run the web and API outside Aspire', function () {
 Then('the web app should use {string} as its default local URL', function (expectedUrl: string) {
   const source = readRepoFile('src/web/package.json');
   assert.ok(source.includes('3101'), 'Expected web dev server to use rebased local port');
-  assert.strictEqual(expectedUrl, 'http://localhost:3101');
+  assert.strictEqual(expectedUrl, 'http://localhost:3001');
 });
 
 Then('the API should use {string} as its default local URL', function (expectedUrl: string) {
   const source = `${readRepoFile('src/api/src/index.ts')}\n${readRepoFile('apphost.cs')}`;
   assert.ok(source.includes('5101'), 'Expected API default port to use rebased local port');
-  assert.strictEqual(expectedUrl, 'http://localhost:5101');
+  assert.strictEqual(expectedUrl, 'http://localhost:5001');
 });
 
 When('I run the local docs server', function () {
@@ -487,8 +487,8 @@ Then('the local test harness should use the same rebased web and API URLs', func
     readRepoFile('e2e/playwright.config.ts'),
     readRepoFile('e2e/fixtures.ts'),
   ];
-  assert.ok(files.some((content) => content.includes('http://localhost:3101')), 'Expected test harness to include rebased web URL');
-  assert.ok(files.some((content) => content.includes('http://localhost:5101')), 'Expected test harness to include rebased API URL');
+  assert.ok(files.some((content) => content.includes('http://localhost:3001')), 'Expected test harness to include rebased web URL');
+  assert.ok(files.some((content) => content.includes('http://localhost:5001')), 'Expected test harness to include rebased API URL');
 });
 
 Given('the DJ Training app has explicit local environment values for app and API URLs', function () {
@@ -506,8 +506,8 @@ Then('the explicit environment values should be used', function () {
 });
 
 Then('the rebased defaults should not overwrite them', function () {
-  assert.notStrictEqual(process.env.APP_URL, 'http://localhost:3101');
-  assert.notStrictEqual(process.env.API_URL, 'http://localhost:5101');
+  assert.notStrictEqual(process.env.APP_URL, 'http://localhost:3001');
+  assert.notStrictEqual(process.env.API_URL, 'http://localhost:5001');
   delete process.env.APP_URL;
   delete process.env.API_URL;
 });
@@ -607,14 +607,14 @@ When('I start the affected service', function () {
 });
 
 Then('the web app should become healthy on {string}', async function (this: CustomWorld, expectedUrl: string) {
-  assert.strictEqual(expectedUrl, 'http://localhost:3101');
+  assert.strictEqual(expectedUrl, 'http://localhost:3001');
   assert.ok(this.response && this.response.status >= 200 && this.response.status < 300, 'Expected API health check to succeed while the stack is running');
   const webResponse = await fetch(this.webBaseUrl);
   assert.ok(webResponse.ok, 'Expected web app to respond on the rebased Aspire URL');
 });
 
 Then('the API should become healthy on {string}', async function (this: CustomWorld, expectedUrl: string) {
-  assert.strictEqual(expectedUrl, 'http://localhost:5101');
+  assert.strictEqual(expectedUrl, 'http://localhost:5001');
   const apiResponse = await fetch(`${this.apiBaseUrl}/health`);
   assert.ok(apiResponse.ok, 'Expected API health endpoint to respond on the rebased Aspire URL');
 });

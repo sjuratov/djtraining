@@ -9,7 +9,7 @@ export interface Message {
   isError?: boolean;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5101';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 
 const WELCOME_MESSAGE: Message = {
   id: 'welcome',

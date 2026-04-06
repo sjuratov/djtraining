@@ -13,13 +13,13 @@ async function loginUser(page: Page, email: string, password: string) {
 }
 
 async function createVerifiedUser(page: Page, email: string, password: string, displayName = 'Test User') {
-  await page.request.post('http://localhost:5101/api/test/create-user', {
+  await page.request.post('http://localhost:5001/api/test/create-user', {
     data: { email, password, displayName },
   });
 }
 
 test.beforeEach(async ({ context }) => {
-  await context.request.post('http://localhost:5101/api/test/reset');
+  await context.request.post('http://localhost:5001/api/test/reset');
   await context.clearCookies();
 });
 
@@ -126,8 +126,8 @@ test.describe('Profile Page', () => {
 
 test.describe('Profile Form', () => {
   test.beforeEach(async ({ page, request }) => {
-    await request.post('http://localhost:5101/api/test/reset');
-    await request.post('http://localhost:5101/api/test/create-user', {
+    await request.post('http://localhost:5001/api/test/reset');
+    await request.post('http://localhost:5001/api/test/create-user', {
       data: { email: 'profil@test.de', displayName: 'Test Profil', password: 'test1234' },
     });
     await page.goto('/login');

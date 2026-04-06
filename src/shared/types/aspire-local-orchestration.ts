@@ -40,8 +40,8 @@ export interface OtlpCollectorAcceptedResponse {
 }
 
 export interface AspireLocalOrchestrationContract {
-  webBaseUrl: 'http://localhost:3101';
-  apiBaseUrl: 'http://localhost:5101';
+  webBaseUrl: 'http://localhost:3001';
+  apiBaseUrl: 'http://localhost:5001';
   docsBaseUrl: 'http://localhost:8100';
   telemetry: LocalTelemetryResource;
 }

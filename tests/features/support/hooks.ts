@@ -8,8 +8,8 @@ setDefaultTimeout(30_000);
 
 const SCREENSHOT_BASE_DIR = path.resolve(process.cwd(), 'docs', 'screenshots');
 const GENERATE_SCREENSHOTS = process.env.GENERATE_SCREENSHOTS === 'true';
-const WEB_URL = process.env.WEB_URL || 'http://localhost:3101';
-const API_URL = process.env.API_URL || 'http://localhost:5101';
+const WEB_URL = process.env.WEB_URL || 'http://localhost:3001';
+const API_URL = process.env.API_URL || 'http://localhost:5001';
 const WEB_CONNECT_URL = WEB_URL.replace('localhost', '127.0.0.1');
 const API_CONNECT_URL = API_URL.replace('localhost', '127.0.0.1');
 

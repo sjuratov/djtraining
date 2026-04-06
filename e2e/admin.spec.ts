@@ -13,19 +13,19 @@ async function loginUser(page: Page, email: string, password: string) {
 }
 
 async function createAdminUser(page: Page, email: string, password: string, displayName = 'Admin User') {
-  await page.request.post('http://localhost:5101/api/test/create-user', {
+  await page.request.post('http://localhost:5001/api/test/create-user', {
     data: { email, password, displayName, role: 'admin' },
   });
 }
 
 async function createVerifiedUser(page: Page, email: string, password: string, displayName = 'Test User') {
-  await page.request.post('http://localhost:5101/api/test/create-user', {
+  await page.request.post('http://localhost:5001/api/test/create-user', {
     data: { email, password, displayName },
   });
 }
 
 test.beforeEach(async ({ context }) => {
-  await context.request.post('http://localhost:5101/api/test/reset');
+  await context.request.post('http://localhost:5001/api/test/reset');
   await context.clearCookies();
 });
 
@@ -71,11 +71,11 @@ test.describe('Admin Dashboard', () => {
 
 test.describe('Admin Member Profiles', () => {
   test.beforeEach(async ({ page, request }) => {
-    await request.post('http://localhost:5101/api/test/reset');
-    await request.post('http://localhost:5101/api/test/create-user', {
+    await request.post('http://localhost:5001/api/test/reset');
+    await request.post('http://localhost:5001/api/test/create-user', {
       data: { email: 'admin@test.de', displayName: 'Admin Test', password: 'admin1234', role: 'admin' },
     });
-    await request.post('http://localhost:5101/api/test/create-user', {
+    await request.post('http://localhost:5001/api/test/create-user', {
       data: { email: 'member@test.de', displayName: 'Member Test', password: 'member1234' },
     });
     await page.goto('/login');

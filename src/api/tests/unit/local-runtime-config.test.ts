@@ -35,7 +35,7 @@ describe('local runtime config rebase', () => {
   });
 
   it('should declare the rebased default web origin in the API runtime config', () => {
-    expect(readRepoFile('src/api/src/app.ts')).toContain("process.env.APP_URL || 'http://localhost:3101'");
+    expect(readRepoFile('src/api/src/app.ts')).toContain("process.env.APP_URL || 'http://localhost:3001'");
   });
 
   it('should default Google auth callback redirects to the rebased web URL when APP_URL is not set', async () => {
@@ -48,7 +48,7 @@ describe('local runtime config rebase', () => {
       .set('Cookie', ['oauth_state=local-state']);
 
     expect(res.status).toBe(302);
-    expect(res.headers.location).toBe('http://localhost:3101/login?error=google_failed');
+    expect(res.headers.location).toBe('http://localhost:3001/login?error=google_failed');
   });
 
   it('should default verification email links to the rebased web URL when APP_URL is not set', async () => {
@@ -58,7 +58,7 @@ describe('local runtime config rebase', () => {
     const createTransportMock = vi.fn(() => ({ sendMail: sendMailMock }));
     const emailService = createEmailService(
       {
-        API_URL: 'http://localhost:5101',
+        API_URL: 'http://localhost:5001',
         SMTP_HOST: 'smtp.example.com',
         SMTP_PORT: '465',
         SMTP_USER: 'mailer@example.com',
@@ -74,26 +74,26 @@ describe('local runtime config rebase', () => {
     await emailService.sendVerificationEmail('deliver@example.com', 'rebase-token');
 
     expect(sendMailMock).toHaveBeenCalledWith(expect.objectContaining({
-      text: expect.stringContaining('http://localhost:3101/auth/verify?token=rebase-token'),
-      html: expect.stringContaining('http://localhost:3101/auth/verify?token=rebase-token'),
+      text: expect.stringContaining('http://localhost:3001/auth/verify?token=rebase-token'),
+      html: expect.stringContaining('http://localhost:3001/auth/verify?token=rebase-token'),
     }));
   });
 
   it('should align local tooling defaults with the rebased web and API URLs', () => {
     expect(readRepoFile('src/api/src/index.ts')).toContain("process.env.PORT || '5101'");
-    expect(readRepoFile('src/api/src/routes/auth.ts')).toContain("process.env.APP_URL || 'http://localhost:3101'");
-    expect(readRepoFile('src/api/src/services/email.ts')).toContain("env.APP_URL || 'http://localhost:3101'");
+    expect(readRepoFile('src/api/src/routes/auth.ts')).toContain("process.env.APP_URL || 'http://localhost:3001'");
+    expect(readRepoFile('src/api/src/services/email.ts')).toContain("env.APP_URL || 'http://localhost:3001'");
 
-    expect(readRepoFile('src/web/next.config.ts')).toContain("http://localhost:5101");
-    expect(readRepoFile('src/web/src/app/hooks/useChat.ts')).toContain("http://localhost:5101");
-    expect(readRepoFile('src/web/src/app/kontakt/page.tsx')).toContain("http://localhost:5101");
+    expect(readRepoFile('src/web/next.config.ts')).toContain("http://localhost:5001");
+    expect(readRepoFile('src/web/src/app/hooks/useChat.ts')).toContain("http://localhost:5001");
+    expect(readRepoFile('src/web/src/app/kontakt/page.tsx')).toContain("http://localhost:5001");
 
-    expect(readRepoFile('e2e/playwright.config.ts')).toContain("http://localhost:3101");
-    expect(readRepoFile('e2e/fixtures.ts')).toContain("replace(':3101', ':5101')");
-    expect(readRepoFile('tests/features/support/hooks.ts')).toContain("const WEB_URL = process.env.WEB_URL || 'http://localhost:3101'");
-    expect(readRepoFile('tests/features/support/hooks.ts')).toContain("const API_URL = process.env.API_URL || 'http://localhost:5101'");
-    expect(readRepoFile('tests/features/support/world.ts')).toContain("apiBaseUrl = 'http://localhost:5101'");
-    expect(readRepoFile('tests/features/support/world.ts')).toContain("webBaseUrl = 'http://localhost:3101'");
+    expect(readRepoFile('e2e/playwright.config.ts')).toContain("http://localhost:3001");
+    expect(readRepoFile('e2e/fixtures.ts')).toContain("replace(':3001', ':5001')");
+    expect(readRepoFile('tests/features/support/hooks.ts')).toContain("const WEB_URL = process.env.WEB_URL || 'http://localhost:3001'");
+    expect(readRepoFile('tests/features/support/hooks.ts')).toContain("const API_URL = process.env.API_URL || 'http://localhost:5001'");
+    expect(readRepoFile('tests/features/support/world.ts')).toContain("apiBaseUrl = 'http://localhost:5001'");
+    expect(readRepoFile('tests/features/support/world.ts')).toContain("webBaseUrl = 'http://localhost:3001'");
   });
 
   it('should document that local runtime wiring must target the rebased URLs without a silent fallback', () => {

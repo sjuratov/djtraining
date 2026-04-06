@@ -17,8 +17,8 @@ export class CustomWorld extends World {
 
   response: { status: number; body: any; headers: Headers } | null = null;
   cookies: string[] = [];
-  apiBaseUrl = 'http://localhost:5101';
-  webBaseUrl = 'http://localhost:3101';
+  apiBaseUrl = 'http://localhost:5001';
+  webBaseUrl = 'http://localhost:3001';
   storedPasswords: Record<string, string> = {};
   tamperedJwt: string | null = null;
 

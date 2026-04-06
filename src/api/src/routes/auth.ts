@@ -177,7 +177,7 @@ export function mapAuthEndpoints(app: Express): void {
   // GOOGLE OAUTH - callback
   app.get('/api/auth/google/callback', async (req, res) => {
     const { code, state } = req.query;
-    const frontendUrl = process.env.APP_URL || 'http://localhost:3101';
+    const frontendUrl = process.env.APP_URL || 'http://localhost:3001';
     const expectedState = req.cookies?.oauth_state;
 
     if (!state || !expectedState || state !== expectedState) {

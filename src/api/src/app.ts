@@ -4,7 +4,6 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import pinoHttp from 'pino-http';
 import { logger } from './logger.js';
-import { createApiTelemetryMiddleware } from './telemetry.js';
 import { mapHealthEndpoints } from './routes/health.js';
 import { mapChatEndpoints } from './routes/chat.js';
 import { mapAuthEndpoints } from './routes/auth.js';
@@ -69,9 +68,9 @@ export function createApp(): express.Express {
     },
   }));
   const allowedOrigins = [
-    process.env.APP_URL || 'http://localhost:3101',
-    'http://localhost:3101',
-    'http://127.0.0.1:3101',
+    process.env.APP_URL || 'http://localhost:3001',
+    'http://localhost:3001',
+    'http://127.0.0.1:3001',
   ].filter(Boolean);
 
   app.use(cors({
@@ -97,7 +96,6 @@ export function createApp(): express.Express {
   }));
   app.use(express.json());
   app.use(cookieParser());
-  app.use(createApiTelemetryMiddleware());
   app.use(pinoHttp({ logger }));
 
   // Routes

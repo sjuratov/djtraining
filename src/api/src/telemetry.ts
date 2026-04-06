@@ -161,9 +161,10 @@ export async function startApiTelemetry(): Promise<void> {
       ],
       instrumentations: [
         getNodeAutoInstrumentations({
-          '@opentelemetry/instrumentation-express': { enabled: false },
           '@opentelemetry/instrumentation-fs': { enabled: false },
-          '@opentelemetry/instrumentation-http': { enabled: false },
+          '@opentelemetry/instrumentation-http': {
+            ignoreIncomingRequestHook: (req) => req.url === '/health',
+          },
         }),
       ],
     });

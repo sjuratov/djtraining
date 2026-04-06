@@ -8,7 +8,7 @@ export default defineConfig({
   workers: 1,
   reporter: 'html',
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3101',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3001',
     trace: 'on-first-retry',
     screenshot: 'on',
     video: 'retain-on-failure',
@@ -21,7 +21,7 @@ export default defineConfig({
   ],
   webServer: process.env.PLAYWRIGHT_BASE_URL ? undefined : {
     command: 'aspire run --apphost ../apphost.cs --non-interactive --nologo',
-    url: 'http://localhost:3101',
+    url: 'http://localhost:3001',
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
     stdout: 'pipe',

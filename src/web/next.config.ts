@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     return [
-      { source: '/api/:path*', destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5101'}/api/:path*` },
+      { source: '/api/:path*', destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'}/api/:path*` },
     ];
   },
 };

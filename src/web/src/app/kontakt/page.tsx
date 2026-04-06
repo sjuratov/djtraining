@@ -4,7 +4,7 @@ import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
 
 export default function KontaktPage() {
-  const localApiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5101';
+  const localApiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
   const [formData, setFormData] = useState({
     name: '',
     email: '',

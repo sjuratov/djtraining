@@ -89,7 +89,7 @@ export function createEmailService(
     createTransport: nodemailer.createTransport,
   }
 ): EmailService {
-  const baseUrl = env.APP_URL || 'http://localhost:3101';
+  const baseUrl = env.APP_URL || 'http://localhost:3001';
 
   return {
     async sendVerificationEmail(email: string, token: string): Promise<void> {
