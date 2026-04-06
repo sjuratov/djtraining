@@ -3,7 +3,7 @@ import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentation
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { resourceFromAttributes } from '@opentelemetry/resources';
-import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
+import { AggregationTemporality, PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
@@ -18,7 +18,6 @@ type TelemetryConfig = {
 };
 
 const SENSITIVE_PATH_PATTERNS = [/password/i, /token/i, /authorization/i, /cookie/i, /secret/i, /auth[-_]?code/i];
-const METRIC_EXPORT_INTERVAL_MILLIS = Number.parseInt(process.env.OTEL_METRIC_EXPORT_INTERVAL ?? '1000', 10);
 const TRACE_FLUSH_DELAY_MILLIS = 200;
 
 let sdk: NodeSDK | null = null;
@@ -139,6 +138,8 @@ export async function startApiTelemetry(): Promise<void> {
   diag.setLogger(createDiagLogger(), DiagLogLevel.WARN);
 
   try {
+    const metricExportIntervalMillis = Number.parseInt(process.env.OTEL_METRIC_EXPORT_INTERVAL ?? '60000', 10);
+
     sdk = new NodeSDK({
       resource: resourceFromAttributes({
         [ATTR_SERVICE_NAME]: config.serviceName,
@@ -152,8 +153,10 @@ export async function startApiTelemetry(): Promise<void> {
       ],
       metricReaders: [
         new PeriodicExportingMetricReader({
-          exporter: new OTLPMetricExporter(),
-          exportIntervalMillis: METRIC_EXPORT_INTERVAL_MILLIS,
+          exporter: new OTLPMetricExporter({
+            temporalityPreference: AggregationTemporality.DELTA,
+          }),
+          exportIntervalMillis: metricExportIntervalMillis,
         }),
       ],
       instrumentations: [

@@ -95,7 +95,7 @@ export function createEmailService(
     async sendVerificationEmail(email: string, token: string): Promise<void> {
       const verificationUrl = `${baseUrl}/auth/verify?token=${token}`;
       const deliveryMode = getEmailDeliveryMode(env);
-      const isTestHarness = env.NODE_ENV === 'test' || env.ENABLE_TEST_ROUTES === 'true';
+      const isTestHarness = env.NODE_ENV === 'test';
       const logVerificationUrls = env.EMAIL_LOG_VERIFICATION_URLS === 'true';
       const localRuntime = isLocalRuntime(env);
       const smtpConfig = getSmtpConfig(env);

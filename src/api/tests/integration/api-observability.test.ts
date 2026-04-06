@@ -109,6 +109,7 @@ describe('API observability integration', () => {
       process.env.OTEL_EXPORTER_OTLP_ENDPOINT = collector.baseUrl;
       process.env.OTEL_EXPORTER_OTLP_PROTOCOL = 'http/protobuf';
       process.env.OTEL_SERVICE_NAME = 'dj-training-api';
+      process.env.OTEL_METRIC_EXPORT_INTERVAL = '1000';
 
       const telemetryModule = await importTelemetryModule();
 
@@ -121,11 +122,11 @@ describe('API observability integration', () => {
       await request(app).get('/health').expect(200);
 
       await waitForCollectorRequest(collector.requests, (requestPath) => requestPath === '/v1/traces');
-      await waitForCollectorRequest(collector.requests, (requestPath) => requestPath === '/v1/metrics');
+      await waitForCollectorRequest(collector.requests, (requestPath) => requestPath === '/v1/metrics', 10000);
     } finally {
       await collector.close();
     }
-  });
+  }, 20000);
 
   it('should keep the API reachable when the telemetry collector is unavailable', async () => {
     process.env.OTEL_EXPORTER_OTLP_ENDPOINT = 'http://127.0.0.1:9';
