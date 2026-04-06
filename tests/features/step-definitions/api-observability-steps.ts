@@ -69,13 +69,13 @@ When('the API starts', async function (this: CustomWorld) {
 
 Then('the API should emit a trace for that request', function () {
   const telemetrySource = readTelemetrySource();
-  assert.ok(telemetrySource.includes('@opentelemetry/exporter-trace-otlp-http'), 'Expected API telemetry bootstrap to configure the OTLP trace exporter');
+  assert.ok(telemetrySource.includes('@opentelemetry/exporter-trace-otlp-grpc'), 'Expected API telemetry bootstrap to configure the OTLP trace exporter');
   assert.ok(telemetrySource.includes('getNodeAutoInstrumentations') || telemetrySource.includes('instrumentation-http'), 'Expected API telemetry bootstrap to instrument inbound HTTP requests');
 });
 
 Then('the API should emit request metrics for that request', function () {
   const telemetrySource = readTelemetrySource();
-  assert.ok(telemetrySource.includes('@opentelemetry/exporter-metrics-otlp-http'), 'Expected API telemetry bootstrap to configure the OTLP metric exporter');
+  assert.ok(telemetrySource.includes('@opentelemetry/exporter-metrics-otlp-grpc'), 'Expected API telemetry bootstrap to configure the OTLP metric exporter');
   assert.ok(telemetrySource.includes('PeriodicExportingMetricReader') || telemetrySource.includes('metricReader'), 'Expected API telemetry bootstrap to configure periodic metric export');
 });
 

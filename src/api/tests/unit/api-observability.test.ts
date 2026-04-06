@@ -20,8 +20,8 @@ describe('API OpenTelemetry signals', () => {
     const source = readApiFile('src/telemetry.ts');
 
     expect(source).toContain('@opentelemetry/sdk-node');
-    expect(source).toContain('@opentelemetry/exporter-trace-otlp-http');
-    expect(source).toContain('@opentelemetry/exporter-metrics-otlp-http');
+    expect(source).toContain('@opentelemetry/exporter-trace-otlp-grpc');
+    expect(source).toContain('@opentelemetry/exporter-metrics-otlp-grpc');
     expect(source).toMatch(/OTEL_SERVICE_NAME|dj-training-api/);
   });
 
